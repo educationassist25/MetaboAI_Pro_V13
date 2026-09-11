@@ -1,0 +1,201 @@
+Metabolite,Method,Pathway
+Metabolite_001,Untargeted Metabolomics,Purine Metabolism
+Metabolite_002,Targeted Metabolomics,Bile Acid Metabolism
+Metabolite_003,Untargeted Metabolomics,Purine Metabolism
+Metabolite_004,Untargeted Lipidomics,TCA Cycle
+Metabolite_005,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_006,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_007,Targeted Metabolomics,Purine Metabolism
+Metabolite_008,Untargeted Lipidomics,Lipid Metabolism
+Metabolite_009,Targeted Metabolomics,Bile Acid Metabolism
+Metabolite_010,Targeted Metabolomics,Fatty Acid Oxidation
+Metabolite_011,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_012,Targeted Lipidomics,Lipid Metabolism
+Metabolite_013,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_014,Untargeted Lipidomics,Lipid Metabolism
+Metabolite_015,Targeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_016,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_017,Untargeted Metabolomics,Purine Metabolism
+Metabolite_018,Untargeted Metabolomics,Lipid Metabolism
+Metabolite_019,Untargeted Lipidomics,Fatty Acid Oxidation
+Metabolite_020,Untargeted Lipidomics,TCA Cycle
+Metabolite_021,Untargeted Metabolomics,Glycolysis
+Metabolite_022,Untargeted Metabolomics,Nucleotide Metabolism
+Metabolite_023,Untargeted Lipidomics,TCA Cycle
+Metabolite_024,Untargeted Lipidomics,Fatty Acid Oxidation
+Metabolite_025,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_026,Untargeted Lipidomics,Steroid Hormone Biosynthesis
+Metabolite_027,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_028,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_029,Targeted Lipidomics,Glycolysis
+Metabolite_030,Targeted Metabolomics,Purine Metabolism
+Metabolite_031,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_032,Targeted Lipidomics,Steroid Hormone Biosynthesis
+Metabolite_033,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_034,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_035,Targeted Lipidomics,Glycolysis
+Metabolite_036,Untargeted Lipidomics,Nucleotide Metabolism
+Metabolite_037,Untargeted Lipidomics,Amino Acid Metabolism
+Metabolite_038,Targeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_039,Untargeted Lipidomics,Amino Acid Metabolism
+Metabolite_040,Untargeted Lipidomics,Glycolysis
+Metabolite_041,Targeted Metabolomics,Fatty Acid Oxidation
+Metabolite_042,Untargeted Metabolomics,Purine Metabolism
+Metabolite_043,Untargeted Metabolomics,TCA Cycle
+Metabolite_044,Untargeted Lipidomics,Purine Metabolism
+Metabolite_045,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_046,Untargeted Metabolomics,Purine Metabolism
+Metabolite_047,Untargeted Metabolomics,Glycolysis
+Metabolite_048,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_049,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_050,Untargeted Lipidomics,Lipid Metabolism
+Metabolite_051,Targeted Metabolomics,Sphingolipid Metabolism
+Metabolite_052,Untargeted Lipidomics,Purine Metabolism
+Metabolite_053,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_054,Untargeted Metabolomics,Sphingolipid Metabolism
+Metabolite_055,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_056,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_057,Targeted Metabolomics,Nucleotide Metabolism
+Metabolite_058,Untargeted Lipidomics,Bile Acid Metabolism
+Metabolite_059,Untargeted Lipidomics,TCA Cycle
+Metabolite_060,Untargeted Metabolomics,Nucleotide Metabolism
+Metabolite_061,Untargeted Metabolomics,TCA Cycle
+Metabolite_062,Untargeted Lipidomics,Glycolysis
+Metabolite_063,Untargeted Metabolomics,TCA Cycle
+Metabolite_064,Untargeted Metabolomics,Sphingolipid Metabolism
+Metabolite_065,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_066,Untargeted Lipidomics,Glycolysis
+Metabolite_067,Untargeted Metabolomics,Lipid Metabolism
+Metabolite_068,Targeted Metabolomics,Purine Metabolism
+Metabolite_069,Targeted Metabolomics,TCA Cycle
+Metabolite_070,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_071,Untargeted Metabolomics,Sphingolipid Metabolism
+Metabolite_072,Untargeted Lipidomics,TCA Cycle
+Metabolite_073,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_074,Targeted Lipidomics,Bile Acid Metabolism
+Metabolite_075,Untargeted Lipidomics,TCA Cycle
+Metabolite_076,Untargeted Lipidomics,Fatty Acid Oxidation
+Metabolite_077,Targeted Metabolomics,Purine Metabolism
+Metabolite_078,Targeted Metabolomics,TCA Cycle
+Metabolite_079,Untargeted Metabolomics,Lipid Metabolism
+Metabolite_080,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_081,Untargeted Lipidomics,Nucleotide Metabolism
+Metabolite_082,Untargeted Metabolomics,Lipid Metabolism
+Metabolite_083,Targeted Metabolomics,Sphingolipid Metabolism
+Metabolite_084,Targeted Metabolomics,Glycolysis
+Metabolite_085,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_086,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_087,Targeted Metabolomics,Glycolysis
+Metabolite_088,Targeted Lipidomics,Lipid Metabolism
+Metabolite_089,Targeted Lipidomics,Bile Acid Metabolism
+Metabolite_090,Targeted Metabolomics,Sphingolipid Metabolism
+Metabolite_091,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_092,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_093,Untargeted Lipidomics,Steroid Hormone Biosynthesis
+Metabolite_094,Untargeted Lipidomics,Nucleotide Metabolism
+Metabolite_095,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_096,Untargeted Metabolomics,Nucleotide Metabolism
+Metabolite_097,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_098,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_099,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_100,Targeted Lipidomics,Bile Acid Metabolism
+Metabolite_101,Targeted Metabolomics,Lipid Metabolism
+Metabolite_102,Untargeted Lipidomics,Lipid Metabolism
+Metabolite_103,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_104,Targeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_105,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_106,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_107,Untargeted Metabolomics,Purine Metabolism
+Metabolite_108,Untargeted Metabolomics,Purine Metabolism
+Metabolite_109,Untargeted Lipidomics,Nucleotide Metabolism
+Metabolite_110,Targeted Metabolomics,Fatty Acid Oxidation
+Metabolite_111,Untargeted Metabolomics,TCA Cycle
+Metabolite_112,Untargeted Lipidomics,Glycolysis
+Metabolite_113,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_114,Targeted Metabolomics,TCA Cycle
+Metabolite_115,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_116,Untargeted Lipidomics,Fatty Acid Oxidation
+Metabolite_117,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_118,Targeted Lipidomics,Amino Acid Metabolism
+Metabolite_119,Targeted Lipidomics,TCA Cycle
+Metabolite_120,Untargeted Metabolomics,Glycolysis
+Metabolite_121,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_122,Untargeted Lipidomics,Fatty Acid Oxidation
+Metabolite_123,Targeted Metabolomics,Lipid Metabolism
+Metabolite_124,Targeted Metabolomics,Purine Metabolism
+Metabolite_125,Untargeted Metabolomics,Nucleotide Metabolism
+Metabolite_126,Targeted Metabolomics,Fatty Acid Oxidation
+Metabolite_127,Untargeted Lipidomics,Glycolysis
+Metabolite_128,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_129,Untargeted Metabolomics,Sphingolipid Metabolism
+Metabolite_130,Targeted Metabolomics,Nucleotide Metabolism
+Metabolite_131,Targeted Metabolomics,Sphingolipid Metabolism
+Metabolite_132,Targeted Lipidomics,Steroid Hormone Biosynthesis
+Metabolite_133,Untargeted Lipidomics,Purine Metabolism
+Metabolite_134,Untargeted Lipidomics,Purine Metabolism
+Metabolite_135,Targeted Metabolomics,Amino Acid Metabolism
+Metabolite_136,Targeted Metabolomics,TCA Cycle
+Metabolite_137,Untargeted Lipidomics,TCA Cycle
+Metabolite_138,Targeted Lipidomics,Amino Acid Metabolism
+Metabolite_139,Untargeted Lipidomics,Lipid Metabolism
+Metabolite_140,Targeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_141,Targeted Metabolomics,Lipid Metabolism
+Metabolite_142,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_143,Targeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_144,Untargeted Metabolomics,Glycolysis
+Metabolite_145,Targeted Lipidomics,Fatty Acid Oxidation
+Metabolite_146,Untargeted Lipidomics,Amino Acid Metabolism
+Metabolite_147,Untargeted Metabolomics,Purine Metabolism
+Metabolite_148,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_149,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_150,Targeted Metabolomics,Lipid Metabolism
+Metabolite_151,Untargeted Lipidomics,Sphingolipid Metabolism
+Metabolite_152,Targeted Metabolomics,Glycolysis
+Metabolite_153,Untargeted Lipidomics,Purine Metabolism
+Metabolite_154,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_155,Targeted Lipidomics,TCA Cycle
+Metabolite_156,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_157,Targeted Lipidomics,Lipid Metabolism
+Metabolite_158,Targeted Lipidomics,TCA Cycle
+Metabolite_159,Untargeted Lipidomics,Glycolysis
+Metabolite_160,Untargeted Metabolomics,Lipid Metabolism
+Metabolite_161,Targeted Lipidomics,Purine Metabolism
+Metabolite_162,Untargeted Lipidomics,Fatty Acid Oxidation
+Metabolite_163,Targeted Lipidomics,Nucleotide Metabolism
+Metabolite_164,Targeted Lipidomics,Glycolysis
+Metabolite_165,Untargeted Lipidomics,Amino Acid Metabolism
+Metabolite_166,Untargeted Lipidomics,Glycolysis
+Metabolite_167,Untargeted Metabolomics,Purine Metabolism
+Metabolite_168,Targeted Metabolomics,Bile Acid Metabolism
+Metabolite_169,Untargeted Metabolomics,Fatty Acid Oxidation
+Metabolite_170,Targeted Metabolomics,Fatty Acid Oxidation
+Metabolite_171,Untargeted Metabolomics,Glycolysis
+Metabolite_172,Targeted Lipidomics,Sphingolipid Metabolism
+Metabolite_173,Targeted Metabolomics,Bile Acid Metabolism
+Metabolite_174,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_175,Untargeted Metabolomics,Purine Metabolism
+Metabolite_176,Untargeted Metabolomics,Purine Metabolism
+Metabolite_177,Untargeted Metabolomics,Purine Metabolism
+Metabolite_178,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_179,Untargeted Lipidomics,Steroid Hormone Biosynthesis
+Metabolite_180,Untargeted Lipidomics,Fatty Acid Oxidation
+Metabolite_181,Untargeted Metabolomics,Sphingolipid Metabolism
+Metabolite_182,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_183,Targeted Lipidomics,Glycolysis
+Metabolite_184,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_185,Untargeted Metabolomics,Steroid Hormone Biosynthesis
+Metabolite_186,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_187,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_188,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_189,Untargeted Metabolomics,Amino Acid Metabolism
+Metabolite_190,Targeted Metabolomics,Glycolysis
+Metabolite_191,Targeted Metabolomics,Lipid Metabolism
+Metabolite_192,Untargeted Metabolomics,Bile Acid Metabolism
+Metabolite_193,Untargeted Lipidomics,Glycolysis
+Metabolite_194,Untargeted Lipidomics,Glycolysis
+Metabolite_195,Untargeted Metabolomics,Glycolysis
+Metabolite_196,Untargeted Lipidomics,Lipid Metabolism
+Metabolite_197,Untargeted Metabolomics,Glycolysis
+Metabolite_198,Targeted Lipidomics,Lipid Metabolism
+Metabolite_199,Targeted Metabolomics,Fatty Acid Oxidation
+Metabolite_200,Untargeted Metabolomics,Sphingolipid Metabolism
