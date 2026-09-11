@@ -35,9 +35,9 @@ MetabolicSyndrome_6,Metabolic Syndrome,False,2,Metabolic Syndrome,45,Female,Metf
 MetabolicSyndrome_7,Metabolic Syndrome,False,2,Metabolic Syndrome,61,Female,Metformin,Caucasian,75.6
 MetabolicSyndrome_8,Metabolic Syndrome,False,2,Metabolic Syndrome,53,Female,Metformin,Other,96.4
 MetabolicSyndrome_9,Metabolic Syndrome,False,2,Metabolic Syndrome,77,Female,Metformin,African American,93.8
-QC_1,QC,True,1,QC,,QC,QC,QC,
-QC_2,QC,True,1,QC,,QC,QC,QC,
-QC_3,QC,True,1,QC,,QC,QC,QC,
-QC_4,QC,True,2,QC,,QC,QC,QC,
-QC_5,QC,True,2,QC,,QC,QC,QC,
-QC_6,QC,True,2,QC,,QC,QC,QC,
+QC_1, ,True,1, ,, , , ,
+QC_2, ,True,1, ,, , , ,
+QC_3, ,True,1, ,, , , ,
+QC_4, ,True,2, ,, , , ,
+QC_5, ,True,2, ,, , , ,
+QC_6, ,True,2, ,, , , ,
