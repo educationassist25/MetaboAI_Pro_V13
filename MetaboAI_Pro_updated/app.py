@@ -1738,49 +1738,91 @@ with TABS[10]:
             st.session_state.heatmap_annotation_colors_applied = {}
 
         if all_annotation_tracks:
-            with st.expander("🎨 Annotation Colors", expanded=False):
-                n_tracks = len(all_annotation_tracks)
-                chunk_size = min(6, max(2, n_tracks)) if n_tracks <= 6 else 3
-                annotation_colors_live = {}
-                for chunk_start in range(0, n_tracks, chunk_size):
-                    chunk = all_annotation_tracks[chunk_start:chunk_start + chunk_size]
-                    grid_cols = st.columns(chunk_size)
-                    for i, (track_col, lookup_df, missing_label) in enumerate(chunk):
-                        kind = heatmap_module.classify_annotation_series(lookup_df[track_col])
-                        with grid_cols[i]:
-                            if kind == "continuous":
-                                row = st.columns([1, 1])
-                                row[0].caption(track_col)
-                                cmap_choice = row[1].selectbox(
-                                    track_col, heatmap_module.CONTINUOUS_ANNOT_CMAPS,
-                                    key=f"heatmap_annot_cmap_{track_col}", label_visibility="collapsed"
-                                )
-                                annotation_colors_live[track_col] = cmap_choice
-                            else:
-                                values = sorted(str(v) for v in lookup_df[track_col].dropna().unique())
-                                row = st.columns([1.2] + [0.5] * len(values))
-                                row[0].caption(track_col)
-                                track_colors = {}
-                                for j, val in enumerate(values):
-                                    default_hex = heatmap_module.GROUP_PALETTE[j % len(heatmap_module.GROUP_PALETTE)]
-                                    track_colors[val] = row[j + 1].color_picker(
-                                        val, value=default_hex,
-                                        key=f"heatmap_annot_color_{track_col}_{val}",
-                                        label_visibility="collapsed"
-                                    )
-                                annotation_colors_live[track_col] = track_colors
+    with st.expander("🎨 Annotation Colors", expanded=False):
+        annotation_colors_live = {}
 
-                fc1, fc2, _ = st.columns([1, 1, 4])
-                apply_clicked = fc1.button("Apply Colors", type="primary", key="heatmap_apply_colors")
-                reset_clicked = fc2.button("Reset Colors", key="heatmap_reset_colors")
-                if apply_clicked:
-                    st.session_state.heatmap_annotation_colors_applied = annotation_colors_live
-                if reset_clicked:
-                    st.session_state.heatmap_colors_reset_pending = True
-                    st.session_state.heatmap_annotation_colors_applied = {}
-                    st.rerun()
+        for track_col, lookup_df, missing_label in all_annotation_tracks:
+            kind = heatmap_module.classify_annotation_series(
+                lookup_df[track_col]
+            )
 
-        annotation_colors = st.session_state.get("heatmap_annotation_colors_applied") or {}
+            st.markdown(f"**{track_col}**")
+
+            if kind == "continuous":
+                col1, col2 = st.columns([1, 2])
+
+                with col1:
+                    st.caption("Color map")
+
+                with col2:
+                    cmap_choice = st.selectbox(
+                        "Color map",
+                        heatmap_module.CONTINUOUS_ANNOT_CMAPS,
+                        key=f"heatmap_annot_cmap_{track_col}",
+                        label_visibility="collapsed",
+                    )
+
+                annotation_colors_live[track_col] = cmap_choice
+
+            else:
+                values = sorted(
+                    str(v)
+                    for v in lookup_df[track_col].dropna().unique()
+                )
+
+                track_colors = {}
+
+                # Give every category enough space
+                color_cols = st.columns(len(values))
+
+                for j, val in enumerate(values):
+                    default_hex = (
+                        heatmap_module.GROUP_PALETTE[
+                            j % len(heatmap_module.GROUP_PALETTE)
+                        ]
+                    )
+
+                    with color_cols[j]:
+                        st.caption(val)
+
+                        track_colors[val] = st.color_picker(
+                            f"Color for {val}",
+                            value=default_hex,
+                            key=f"heatmap_annot_color_{track_col}_{val}",
+                            label_visibility="collapsed",
+                        )
+
+                annotation_colors_live[track_col] = track_colors
+
+            st.divider()
+
+        fc1, fc2, _ = st.columns([1, 1, 4])
+
+        apply_clicked = fc1.button(
+            "Apply Colors",
+            type="primary",
+            key="heatmap_apply_colors",
+        )
+
+        reset_clicked = fc2.button(
+            "Reset Colors",
+            key="heatmap_reset_colors",
+        )
+
+        if apply_clicked:
+            st.session_state.heatmap_annotation_colors_applied = (
+                annotation_colors_live
+            )
+
+        if reset_clicked:
+            st.session_state.heatmap_colors_reset_pending = True
+            st.session_state.heatmap_annotation_colors_applied = {}
+            st.rerun()
+
+annotation_colors = (
+    st.session_state.get("heatmap_annotation_colors_applied") or {}
+)
+
 
         CUTOFF_OPTIONS = {
             "FDR ≤ 1 (no filter)": ("FDR", 1.0),
