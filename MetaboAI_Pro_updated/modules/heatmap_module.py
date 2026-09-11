@@ -237,7 +237,7 @@ def clustered_heatmap(data_log2: pd.DataFrame, significant_features, meta: pd.Da
     cmap_name: one of PREDEFINED_PALETTES, ignored if custom_colors is given.
     custom_colors: optional list of hex colors to build a custom gradient (overrides cmap_name).
     reverse_cmap: reverse whichever colormap is selected.
-    vmin/vmax: Z-score color range (color scale limits).
+    vmin/vmax:  color range (color scale limits).
     breakpoints: optional sorted list of numeric boundaries for discrete color banding
                  (uses BoundaryNorm instead of continuous Normalize).
     meta: sample metadata (indexed by sample). Used with `col_annot_cols` for the
@@ -566,7 +566,7 @@ def clustered_heatmap(data_log2: pd.DataFrame, significant_features, meta: pd.Da
 
     ax_cbar = fig.add_axes([cbar_left, cbar_bottom, cbar_w, cbar_h_in / H])
     cbar = fig.colorbar(im, cax=ax_cbar, orientation="horizontal")
-    cbar.set_label("Z-score (row-scaled normalized intensity)", fontsize=0.7 * font_size, fontfamily=font_family)
+    cbar.set_label("Z-score", fontsize=0.7 * font_size, fontfamily=font_family)
     cbar.ax.tick_params(labelsize=0.6 * font_size)
     for lbl in cbar.ax.get_xticklabels():
         lbl.set_fontfamily(font_family)
