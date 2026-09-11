@@ -1746,10 +1746,11 @@ with TABS[10]:
                 lookup_df[track_col]
             )
 
+            # Track name
             st.markdown(f"**{track_col}**")
 
             if kind == "continuous":
-                col1, col2 = st.columns([1, 2])
+                col1, col2 = st.columns([1, 3])
 
                 with col1:
                     st.caption("Color map")
@@ -1772,30 +1773,33 @@ with TABS[10]:
 
                 track_colors = {}
 
-                # Give every category enough space
-                color_cols = st.columns(len(values))
+                # Put each category in its own column
+                if values:
+                    color_cols = st.columns(len(values))
 
-                for j, val in enumerate(values):
-                    default_hex = (
-                        heatmap_module.GROUP_PALETTE[
-                            j % len(heatmap_module.GROUP_PALETTE)
-                        ]
-                    )
-
-                    with color_cols[j]:
-                        st.caption(val)
-
-                        track_colors[val] = st.color_picker(
-                            f"Color for {val}",
-                            value=default_hex,
-                            key=f"heatmap_annot_color_{track_col}_{val}",
-                            label_visibility="collapsed",
+                    for j, val in enumerate(values):
+                        default_hex = (
+                            heatmap_module.GROUP_PALETTE[
+                                j % len(heatmap_module.GROUP_PALETTE)
+                            ]
                         )
+
+                        with color_cols[j]:
+                            st.caption(val)
+
+                            track_colors[val] = st.color_picker(
+                                f"Color for {val}",
+                                value=default_hex,
+                                key=f"heatmap_annot_color_{track_col}_{val}",
+                                label_visibility="collapsed",
+                            )
 
                 annotation_colors_live[track_col] = track_colors
 
+            # Separate annotation tracks visually
             st.divider()
 
+        # Buttons
         fc1, fc2, _ = st.columns([1, 1, 4])
 
         apply_clicked = fc1.button(
@@ -1819,11 +1823,10 @@ with TABS[10]:
             st.session_state.heatmap_annotation_colors_applied = {}
             st.rerun()
 
+
 annotation_colors = (
     st.session_state.get("heatmap_annotation_colors_applied") or {}
 )
-
-
         CUTOFF_OPTIONS = {
             "FDR ≤ 1 (no filter)": ("FDR", 1.0),
             "FDR ≤ 0.25": ("FDR", 0.25),
