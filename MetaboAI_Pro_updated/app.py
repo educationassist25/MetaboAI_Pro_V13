@@ -1853,9 +1853,9 @@ with TABS[10]:
                     st.rerun()
 
 
-annotation_colors = (
-    st.session_state.get("heatmap_annotation_colors_applied") or {}
-
+        annotation_colors = (
+            st.session_state.get("heatmap_annotation_colors_applied") or {}
+        )
 
         CUTOFF_OPTIONS = {
             "FDR ≤ 1 (no filter)": ("FDR", 1.0),
