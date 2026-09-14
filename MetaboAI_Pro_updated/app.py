@@ -13,19 +13,42 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from modules import (
-    utils,
-    qc,
-    normalization,
-    imputation_module,
-    dataset_manager,
-    stats_analysis,
-    pca_module,
-    volcano,
-    biomarker,
-    heatmap_module,
-    boxplot_module,
-)
+# ============================================================
+# IMPORT MODULES — DEBUG VERSION
+# ============================================================
+
+from modules import utils
+print("✓ utils imported")
+
+from modules import qc
+print("✓ qc imported")
+
+from modules import normalization
+print("✓ normalization imported")
+
+from modules import imputation_module
+print("✓ imputation_module imported")
+
+from modules import dataset_manager
+print("✓ dataset_manager imported")
+
+from modules import stats_analysis
+print("✓ stats_analysis imported")
+
+from modules import pca_module
+print("✓ pca_module imported")
+
+from modules import volcano
+print("✓ volcano imported")
+
+from modules import biomarker
+print("✓ biomarker imported")
+
+from modules import heatmap_module
+print("✓ heatmap_module imported")
+
+from modules import boxplot_module
+print("✓ boxplot_module imported")
 
 st.set_page_config(
     page_title="MetaboAI Pro",
