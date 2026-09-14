@@ -1186,22 +1186,102 @@ with TABS[7]:
             method = c3.selectbox("Method", ["Student's t-test", "Wilcoxon rank-sum"])
             method_key = "ttest" if method.startswith("Student") else "wilcoxon"
 
-            if st.button("Run Two-Group Test"):
-                a_samples = meta.index[meta[grouping_var] == group_a].tolist()
-                b_samples = meta.index[meta[grouping_var] == group_b].tolist()
-                a_samples = [s for s in a_samples if s in log2_df.columns]
-                b_samples = [s for s in b_samples if s in log2_df.columns]
+           if st.button("Run Two-Group Test"):
 
-                result = stats_analysis.complete_statistical_table(log2_df, a_samples, b_samples)
-                st.session_state.stats_result = result
-                st.session_state.stats_result_groups = (group_a, group_b)
-                st.session_state.stats_result_group_col = grouping_var
-                st.session_state.processing_notes.append(
-                    f"Statistical comparison ({grouping_var}): {group_a} vs {group_b} using {method} "
-                    f"(BH-FDR correction); {result['Significant'].sum()} significant metabolites "
-                    f"(p<0.05 & FDR<0.25)."
-                )
-                st.success(f"Test complete: {result['Significant'].sum()} significant metabolites found.")
+    # --------------------------------------------------------
+    # Get samples for Group A and Group B
+    # --------------------------------------------------------
+
+    a_samples = meta.index[
+        meta[grouping_var] == group_a
+    ].tolist()
+
+    b_samples = meta.index[
+        meta[grouping_var] == group_b
+    ].tolist()
+
+    # Keep only samples present in the normalized log2 matrix
+    a_samples = [
+        s for s in a_samples
+        if s in log2_df.columns
+    ]
+
+    b_samples = [
+        s for s in b_samples
+        if s in log2_df.columns
+    ]
+
+    # --------------------------------------------------------
+    # Validate sample numbers
+    # --------------------------------------------------------
+
+    if len(a_samples) < 2:
+        st.error(
+            f"Group A ({group_a}) has only {len(a_samples)} "
+            "valid samples. At least 2 samples are required."
+        )
+        st.stop()
+
+    if len(b_samples) < 2:
+        st.error(
+            f"Group B ({group_b}) has only {len(b_samples)} "
+            "valid samples. At least 2 samples are required."
+        )
+        st.stop()
+
+    # --------------------------------------------------------
+    # IMPORTANT:
+    #
+    # log2_df is already the normalized log2-scale dataset.
+    #
+    # NO additional log2 transformation here.
+    #
+    # Fold change is calculated inside stats_analysis.py:
+    #
+    # Log2FC = Mean(Group B) - Mean(Group A)
+    #
+    # Linear FC = 2 ** Log2FC
+    # --------------------------------------------------------
+
+    result = stats_analysis.two_group_test(
+        data_log2=log2_df,
+        group_a_samples=a_samples,
+        group_b_samples=b_samples,
+        method=method_key
+    )
+
+    # --------------------------------------------------------
+    # Save results
+    # --------------------------------------------------------
+
+    st.session_state.stats_result = result
+
+    st.session_state.stats_result_groups = (
+        group_a,
+        group_b
+    )
+
+    st.session_state.stats_result_group_col = grouping_var
+
+    # --------------------------------------------------------
+    # Processing note
+    # --------------------------------------------------------
+
+    significant_count = int(
+        result["Significant"].sum()
+    )
+
+    st.session_state.processing_notes.append(
+        f"Statistical comparison ({grouping_var}): "
+        f"{group_a} vs {group_b} using {method} "
+        f"(BH-FDR correction); "
+        f"{significant_count} significant metabolites "
+        f"(p<0.05 & FDR<0.25)."
+    )
+
+    st.success(
+        f"Test complete: {significant_count} "
+        "significant metabolites found.")
 
             if st.session_state.stats_result is not None and st.session_state.stats_result_groups is not None:
                 result = st.session_state.stats_result
