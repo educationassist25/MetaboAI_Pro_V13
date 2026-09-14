@@ -867,75 +867,95 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
              "Median-IQR robust scaling, matching standard practice. Check this to access both."
     )
 
-   if is_targeted or override:
-    st.markdown("**Step 1: ISTD Normalization**")
-    st.caption(
-        "Formula: **Normalized Peak Area = Endogenous Metabolite Peak Area ÷ ISTD Peak Area**"
-        + ("" if is_targeted else " — optional since this is an untargeted workflow.")
-    )
-
-    use_istd = st.checkbox(
-        "Apply internal standard (ISTD) normalization",
-        value=is_targeted,
-        key=f"{key_prefix}_use_istd"
-    )
-
-    working = base_df
-
-    if use_istd:
-        istd_choice = st.selectbox(
-            "Select internal standard feature",
-            base_df.index.tolist(),
-            key=f"{key_prefix}_istd_choice"
+       if is_targeted or override:
+        st.markdown("**Step 1: ISTD Normalization**")
+        st.caption(
+            "Formula: **Normalized Peak Area = Endogenous Metabolite Peak Area ÷ ISTD Peak Area**"
+            + ("" if is_targeted else " — optional since this is an untargeted workflow.")
         )
 
-        if st.button("Apply ISTD Normalization", key=f"{key_prefix}_apply_istd"):
-            try:
-                working = normalization.istd_normalize(base_df, istd_choice)
-                state["istd_normalized"] = working
-                state["processing_notes"].append(
-                    f"ISTD normalization applied using '{istd_choice}'."
+        use_istd = st.checkbox(
+            "Apply internal standard (ISTD) normalization",
+            value=is_targeted,
+            key=f"{key_prefix}_use_istd"
+        )
+
+        working = base_df
+
+        if use_istd:
+            istd_choice = st.selectbox(
+                "Select internal standard feature",
+                base_df.index.tolist(),
+                key=f"{key_prefix}_istd_choice"
+            )
+
+            if st.button(
+                "Apply ISTD Normalization",
+                key=f"{key_prefix}_apply_istd"
+            ):
+                try:
+                    working = normalization.istd_normalize(
+                        base_df,
+                        istd_choice
+                    )
+
+                    state["istd_normalized"] = working
+
+                    state["processing_notes"].append(
+                        f"ISTD normalization applied using '{istd_choice}'."
+                    )
+
+                    st.success(
+                        f"ISTD normalization complete using {istd_choice}."
+                    )
+
+                except Exception as e:
+                    st.error(str(e))
+
+        working = (
+            state.get("istd_normalized")
+            if state.get("istd_normalized") is not None
+            else base_df
+        )
+
+        st.markdown("**Step 2: Log2 Transformation**")
+        st.caption(
+            "Formula: **Log2(Normalized Peak Area)** — direct log2 transformation "
+            "of the ISTD-normalized data."
+        )
+
+        if st.button(
+            "Apply Log2 Transformation",
+            key=f"{key_prefix}_log2_targeted_btn"
+        ):
+
+            if (working <= 0).any().any():
+
+                st.error(
+                    "Log2 transformation requires all values to be > 0. "
+                    "Zero or negative values were detected."
                 )
-                st.success(f"ISTD normalization complete using {istd_choice}.")
-            except Exception as e:
-                st.error(str(e))
 
-    working = (
-        state.get("istd_normalized")
-        if state.get("istd_normalized") is not None
-        else base_df
-    )
+            else:
 
-    st.markdown("**Step 2: Log2 Transformation**")
-    st.caption(
-        "Formula: **Log2(Normalized Peak Area)** — direct log2 transformation "
-        "of the ISTD-normalized (endogenous ÷ ISTD) ratio."
-    )
+                log2_df = np.log2(working)
 
-    if st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_targeted_btn"):
+                state["log2_data"] = log2_df
+                state["log2_constant"] = None
 
-        if (working <= 0).any().any():
-            st.error(
-                "Log2 transformation requires all values to be > 0. "
-                "Zero or negative values were detected."
-            )
-        else:
-            log2_df = np.log2(working)
+                state["processing_notes"].append(
+                    "Log2 transformation applied directly to "
+                    "ISTD-normalized data (log2(x))."
+                )
 
-            state["log2_data"] = log2_df
-            state["log2_constant"] = None
+                st.success("Log2 transformation complete.")
 
-            state["processing_notes"].append(
-                "Log2 transformation applied directly to ISTD-normalized data (log2(x))."
-            )
+                fig_dist = normalization.distribution_plots(
+                    working,
+                    log2_df
+                )
 
-            st.success("Log2 transformation complete.")
-
-            fig_dist = normalization.distribution_plots(
-                working,
-                log2_df
-            )
-            st.pyplot(fig_dist)
+                st.pyplot(fig_dist)
 
     if (not is_targeted) or override:
         st.markdown("**Step 1: Median-IQR Normalization (Robust Scaling)**")
