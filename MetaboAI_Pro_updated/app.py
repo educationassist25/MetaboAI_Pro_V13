@@ -11,9 +11,26 @@ import matplotlib.pyplot as _plt
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(__file__))
-from modules import utils, qc, normalization, imputation_module, dataset_manager, stats_analysis, pca_module, volcano, biomarker, heatmap_module, boxplot_module
 
-st.set_page_config(page_title="MetaboAI Pro", layout="wide", page_icon="🧪")
+from modules import (
+    utils,
+    qc,
+    normalization,
+    imputation_module,
+    dataset_manager,
+    stats_analysis,
+    pca_module,
+    volcano,
+    biomarker,
+    heatmap_module,
+    boxplot_module,
+)
+
+st.set_page_config(
+    page_title="MetaboAI Pro",
+    layout="wide",
+    page_icon="🧪"
+)
 
 # Compact heatmap annotation-color controls.
 st.markdown(
