@@ -1144,7 +1144,655 @@ with TABS[5]:
                 "downstream tab now uses — head to **Tab 7 (PCA)** to continue."
             )
 
-# =========================================================================== # TAB 8 — STATISTICS # =========================================================================== with TABS[7]: st.header("Statistical Comparison") # ----------------------------------------------------------------------- # 1. CHECK THAT NORMALIZED DATA ARE AVAILABLE # ----------------------------------------------------------------------- if st.session_state.log2_data is None: if st.session_state.data_mode == "single": st.warning( "Complete the Normalization tab first. " "Statistics require the final log2-transformed and normalized data." ) else: st.warning( "Complete Normalization for every dataset, then click " "**🔗 Generate Combined Normalized Data** in Tab 6 first. " "The combined normalized table is used for PCA, Statistics, " "Volcano, Biomarker Discovery, Heatmap, and Boxplot." ) else: # ------------------------------------------------------------------- # 2. INPUT DATA # ------------------------------------------------------------------- log2_df = st.session_state.log2_data.copy() meta = st.session_state.meta.copy() if st.session_state.data_mode == "multi": st.caption( "Analyzing the **combined final normalized data** across all datasets." ) # ------------------------------------------------------------------- # 3. MAKE SURE SAMPLE COLUMNS EXIST IN METADATA # ------------------------------------------------------------------- sample_cols = [ col for col in log2_df.columns if col in meta.index ] if len(sample_cols) == 0: st.error( "No sample columns in the normalized data could be matched " "to the metadata." ) else: # Keep only matched samples for statistical analysis analysis_df = log2_df[sample_cols].copy() # ---------------------------------------------------------------- # 4. FIND CATEGORICAL METADATA VARIABLES # ---------------------------------------------------------------- stats_cat_cols = utils.get_categorical_metadata_columns( meta, sample_cols ) if not stats_cat_cols: st.error( "No categorical metadata columns are available for grouping." ) else: # ------------------------------------------------------------ # 5. GROUPING VARIABLE # ------------------------------------------------------------ default_group_index = ( stats_cat_cols.index("Group") if "Group" in stats_cat_cols else 0 ) grouping_var = st.selectbox( "Grouping variable:", stats_cat_cols, index=default_group_index, key="stats_grouping_var" ) # ------------------------------------------------------------ # 6. GET GROUP VALUES # ------------------------------------------------------------ group_series = meta.loc[sample_cols, grouping_var] # Remove missing values group_series = group_series.dropna() # Convert to strings only for display/selection groups_available = group_series.unique().tolist() if len(groups_available) < 2: st.warning( f"The grouping variable **{grouping_var}** contains " "fewer than two usable groups." ) else: # -------------------------------------------------------- # 7. IMPORTANT ANALYSIS NOTE # -------------------------------------------------------- st.info( "Statistics are calculated from the **final " "log2-transformed, normalized data**. " "No additional log2 transformation is performed here." ) st.caption( "Two-group convention: **Log2FC = Mean(Group B) − " "Mean(Group A)**. Therefore, positive Log2FC means " "higher abundance in Group B, while negative Log2FC " "means higher abundance in Group A." ) # ======================================================== # COMPARISON TYPE # ======================================================== mode = st.radio( "Comparison type", [ "Two-group comparison", "ANOVA (≥3 groups)" ], horizontal=True, key="stats_comparison_mode" ) # ======================================================== # TWO-GROUP COMPARISON # ======================================================== if mode == "Two-group comparison": st.subheader("Two-Group Comparison") # ---------------------------------------------------- # Group selection # ---------------------------------------------------- c1, c2, c3 = st.columns(3) group_a = c1.selectbox( "Group A (Reference / Control)", groups_available, index=0, key="stats_group_a" ) default_b_index = ( 1 if len(groups_available) > 1 else 0 ) group_b = c2.selectbox( "Group B (Treatment / Experimental)", groups_available, index=default_b_index, key="stats_group_b" ) method = c3.selectbox( "Statistical method", [ "Welch's t-test", "Wilcoxon rank-sum" ], key="stats_test_method" ) # ---------------------------------------------------- # Method mapping # ---------------------------------------------------- if method == "Welch's t-test": method_key = "ttest" else: method_key = "wilcoxon" # ---------------------------------------------------- # Prevent same-group comparison # ---------------------------------------------------- if group_a == group_b: st.warning( "Group A and Group B must be different." ) else: # ------------------------------------------------ # Identify samples # ------------------------------------------------ a_samples = meta.index[ meta[grouping_var] == group_a ].tolist() b_samples = meta.index[ meta[grouping_var] == group_b ].tolist() # Keep only samples present in normalized matrix a_samples = [ s for s in a_samples if s in analysis_df.columns ] b_samples = [ s for s in b_samples if s in analysis_df.columns ] # ------------------------------------------------ # Display sample numbers # ------------------------------------------------ st.caption( f"**{group_a}:** n = {len(a_samples)} | " f"**{group_b}:** n = {len(b_samples)}" ) if len(a_samples) < 2 or len(b_samples) < 2: st.warning( "At least 2 biological samples are required " "in each group." ) else: # -------------------------------------------- # RUN STATISTICAL TEST # -------------------------------------------- if st.button( "▶ Run Two-Group Test", key="run_two_group_statistics" ): try: result = stats_analysis.two_group_test( data_log2=analysis_df, group_a_samples=a_samples, group_b_samples=b_samples, method=method_key ) # Store result st.session_state.stats_result = result st.session_state.stats_result_groups = ( group_a, group_b ) st.session_state.stats_result_group_col = ( grouping_var ) st.session_state.stats_result_method = ( method ) # Number significant n_sig = int( result["Significant"].sum() ) # Processing note st.session_state.processing_notes.append( f"Statistical comparison " f"({grouping_var}): " f"{group_a} vs {group_b} using " f"{method}; " f"{n_sig} significant metabolites " f"(p<0.05 & BH-FDR<0.25)." ) st.success( f"Test complete: {n_sig:,} " f"significant metabolites found." ) except Exception as e: st.error( f"Statistical analysis failed: {e}" ) # -------------------------------------------- # DISPLAY PREVIOUS RESULT # -------------------------------------------- if ( st.session_state.stats_result is not None and st.session_state.stats_result_groups is not None ): result = st.session_state.stats_result g_a, g_b = ( st.session_state.stats_result_groups ) comparison_name = ( f"{g_a}_vs_{g_b}" ) st.divider() st.subheader( f"Results: {g_a} vs {g_b}" ) result_method = st.session_state.get( "stats_result_method", method ) st.caption( f"Method: **{result_method}** | " f"Reference: **{g_a}** | " f"Experimental: **{g_b}**" ) # ---------------------------------------- # Summary # ---------------------------------------- n_total = len(result) n_significant = int( result["Significant"].sum() ) n_higher_b = int( ( result["Direction"] == "Higher in Group B" ).sum() ) n_lower_b = int( ( result["Direction"] == "Lower in Group B" ).sum() ) s1, s2, s3, s4 = st.columns(4) s1.metric( "Features tested", f"{n_total:,}" ) s2.metric( "Significant", f"{n_significant:,}" ) s3.metric( "Higher in Group B", f"{n_higher_b:,}" ) s4.metric( "Lower in Group B", f"{n_lower_b:,}" ) # ---------------------------------------- # Results table # ---------------------------------------- st.dataframe( result, width="stretch", height=500 ) # ---------------------------------------- # Download results # ---------------------------------------- st.download_button( label=( f"Download " f"{comparison_name}_Statistics.csv" ), data=utils.to_download_bytes_csv( result ), file_name=( f"{comparison_name}_" f"Statistics.csv" ), mime="text/csv", key="dl_stats_twogroup" ) st.caption( "Significance criterion: " "**p < 0.05 AND BH-FDR < 0.25**. " "Log2FC = Group B − Group A." ) # ======================================================== # ANOVA # ======================================================== else: st.subheader("One-Way ANOVA") if len(groups_available) < 3: st.warning( f"Need at least 3 groups in " f"**{grouping_var}** for ANOVA." ) else: # ------------------------------------------------ # Select groups # ------------------------------------------------ anova_groups = st.multiselect( f"{grouping_var} values to include " "in ANOVA:", groups_available, default=groups_available, key="anova_group_select" ) if len(anova_groups) < 3: st.warning( "Select at least 3 groups to run ANOVA." ) else: # -------------------------------------------- # Post-hoc method # -------------------------------------------- posthoc_method = st.selectbox( "Post-hoc test", [ "tukey", "dunnett", "pairwise" ], key="anova_posthoc_method" ) # -------------------------------------------- # Build group map # -------------------------------------------- group_map = meta.loc[ sample_cols, grouping_var ] group_map = group_map[ group_map.isin(anova_groups) ] group_map = group_map[ group_map.index.isin( analysis_df.columns ) ] # -------------------------------------------- # Sample counts # -------------------------------------------- count_table = ( group_map .value_counts() .reindex(anova_groups) .fillna(0) .astype(int) ) st.write("Samples per group:") st.dataframe( count_table.rename("n").to_frame(), width="stretch" ) if (count_table < 2).any(): bad_groups = count_table[ count_table < 2 ].index.tolist() st.warning( "The following groups have fewer " f"than 2 samples: " f"{', '.join(map(str, bad_groups))}" ) else: # ---------------------------------------- # RUN ANOVA # ---------------------------------------- if st.button( "▶ Run ANOVA", key="run_anova_statistics" ): try: anova_table, posthoc_results = ( stats_analysis.anova_test( analysis_df[ group_map.index ], group_map, posthoc=posthoc_method ) ) # Store results st.session_state.anova_result = ( anova_table ) st.session_state.posthoc_result = ( posthoc_results ) st.session_state.anova_groups_used = ( list(anova_groups) ) st.session_state.stats_result_group_col = ( grouping_var ) n_sig_anova = int( ( anova_table["FDR"] < 0.25 ).sum() ) st.session_state.processing_notes.append( f"One-way ANOVA across " f"{len(anova_groups)} selected " f"{grouping_var} values " f"({', '.join(map(str, anova_groups))}) " f"with {posthoc_method} post-hoc; " f"{n_sig_anova} significant " f"metabolites " f"(BH-FDR<0.25)." ) st.success( f"ANOVA complete: " f"{n_sig_anova:,} significant " f"metabolites " f"(BH-FDR < 0.25)." ) except Exception as e: st.error( f"ANOVA failed: {e}" ) # ---------------------------------------- # DISPLAY ANOVA RESULT # ---------------------------------------- if ( st.session_state.anova_result is not None ): anova_table = ( st.session_state.anova_result ) anova_groups_used = ( st.session_state.get( "anova_groups_used" ) or anova_groups ) anova_comparison_name = ( "ANOVA_" + "_vs_".join( map( str, anova_groups_used ) ) ) st.divider() st.subheader("ANOVA Results") # ------------------------------------ # Summary # ------------------------------------ n_anova_total = len(anova_table) n_anova_sig = int( ( anova_table["FDR"] < 0.25 ).sum() ) a1, a2 = st.columns(2) a1.metric( "Features tested", f"{n_anova_total:,}" ) a2.metric( "Significant", f"{n_anova_sig:,}" ) st.dataframe( anova_table, width="stretch", height=450 ) # ------------------------------------ # Download ANOVA # ------------------------------------ st.download_button( label=( f"Download " f"{anova_comparison_name}.csv" ), data=utils.to_download_bytes_csv( anova_table ), file_name=( f"{anova_comparison_name}.csv" ), mime="text/csv", key="dl_stats_anova" ) st.caption( "ANOVA significance criterion: " "**BH-FDR < 0.25**." ) # ==================================== # POST-HOC RESULTS # ==================================== posthoc_results = ( st.session_state.get( "posthoc_result" ) ) if posthoc_results: st.divider() st.subheader( "Post-hoc Results" ) feature_names = list( posthoc_results.keys() ) if feature_names: feat_choice = st.selectbox( "Select feature:", feature_names, key="posthoc_feature_select" ) selected_posthoc = ( posthoc_results[ feat_choice ] ) st.dataframe( selected_posthoc, width="stretch", height=350 ) # ---------------------------- # Download one feature # ---------------------------- st.download_button( label=( "Download Post-hoc " f"— {feat_choice}" ), data=( utils .to_download_bytes_csv( selected_posthoc ) ), file_name=( f"{anova_comparison_name}" f"_Posthoc_" f"{feat_choice}.csv" ), mime="text/csv", key="dl_stats_posthoc_one" ) # ---------------------------- # Combine all post-hoc results # ---------------------------- all_posthoc = pd.concat( [ df.assign( Feature=feature ) for feature, df in posthoc_results.items() ], ignore_index=True ) st.download_button( label=( "Download All " "Post-hoc Results" ), data=( utils .to_download_bytes_csv( all_posthoc ) ), file_name=( f"{anova_comparison_name}" f"_Posthoc_All_Features.csv" ), mime="text/csv", key="dl_stats_posthoc_all" )
+```python
+# ===========================================================================
+# TAB 8 — STATISTICS
+# ===========================================================================
+with TABS[7]:
+
+    st.header("Statistical Comparison")
+
+    # -----------------------------------------------------------------------
+    # Check normalized data
+    # -----------------------------------------------------------------------
+    if st.session_state.log2_data is None:
+
+        if st.session_state.data_mode == "single":
+            st.warning(
+                "Complete the Normalization tab first. "
+                "Statistics require the final log2-transformed data."
+            )
+        else:
+            st.warning(
+                "Complete normalization for every dataset, then click "
+                "**Generate Combined Normalized Data** in Tab 6 first."
+            )
+
+    else:
+
+        # -------------------------------------------------------------------
+        # Final normalized/log2 data
+        # -------------------------------------------------------------------
+        log2_df = st.session_state.log2_data.copy()
+        meta = st.session_state.meta.copy()
+
+        if st.session_state.data_mode == "multi":
+            st.caption(
+                "Analyzing the combined normalized data across all datasets."
+            )
+
+        # -------------------------------------------------------------------
+        # Match samples between data and metadata
+        # -------------------------------------------------------------------
+        sample_cols = [
+            col for col in log2_df.columns
+            if col in meta.index
+        ]
+
+        if len(sample_cols) == 0:
+
+            st.error(
+                "No sample columns in the normalized data match the metadata."
+            )
+
+        else:
+
+            analysis_df = log2_df[sample_cols].copy()
+
+            # ----------------------------------------------------------------
+            # Grouping variables
+            # ----------------------------------------------------------------
+            stats_cat_cols = utils.get_categorical_metadata_columns(
+                meta,
+                sample_cols
+            )
+
+            if len(stats_cat_cols) == 0:
+
+                st.error(
+                    "No categorical metadata variables are available "
+                    "for statistical comparison."
+                )
+
+            else:
+
+                default_index = (
+                    stats_cat_cols.index("Group")
+                    if "Group" in stats_cat_cols
+                    else 0
+                )
+
+                grouping_var = st.selectbox(
+                    "Grouping variable:",
+                    stats_cat_cols,
+                    index=default_index,
+                    key="stats_grouping_var"
+                )
+
+                # ------------------------------------------------------------
+                # Get groups
+                # ------------------------------------------------------------
+                group_series = meta.loc[
+                    sample_cols,
+                    grouping_var
+                ].dropna()
+
+                groups_available = group_series.unique().tolist()
+
+                if len(groups_available) < 2:
+
+                    st.warning(
+                        f"'{grouping_var}' must contain at least "
+                        "two groups."
+                    )
+
+                else:
+
+                    st.info(
+                        "Statistics are calculated directly from the final "
+                        "log2-transformed normalized data. "
+                        "No additional log2 transformation is applied."
+                    )
+
+                    st.caption(
+                        "For two-group comparisons: "
+                        "Log2FC = Mean(Group B) − Mean(Group A). "
+                        "Positive values indicate higher abundance in Group B."
+                    )
+
+                    # ========================================================
+                    # COMPARISON TYPE
+                    # ========================================================
+                    comparison_type = st.radio(
+                        "Comparison type",
+                        [
+                            "Two-group comparison",
+                            "ANOVA (≥3 groups)"
+                        ],
+                        horizontal=True,
+                        key="stats_comparison_type"
+                    )
+
+                    # ========================================================
+                    # TWO-GROUP TEST
+                    # ========================================================
+                    if comparison_type == "Two-group comparison":
+
+                        st.subheader("Two-Group Comparison")
+
+                        col1, col2, col3 = st.columns(3)
+
+                        group_a = col1.selectbox(
+                            "Group A (Reference)",
+                            groups_available,
+                            index=0,
+                            key="stats_group_a"
+                        )
+
+                        group_b_index = (
+                            1 if len(groups_available) > 1 else 0
+                        )
+
+                        group_b = col2.selectbox(
+                            "Group B (Experimental)",
+                            groups_available,
+                            index=group_b_index,
+                            key="stats_group_b"
+                        )
+
+                        test_method = col3.selectbox(
+                            "Statistical method",
+                            [
+                                "Welch's t-test",
+                                "Wilcoxon rank-sum"
+                            ],
+                            key="stats_test_method"
+                        )
+
+                        if group_a == group_b:
+
+                            st.warning(
+                                "Group A and Group B must be different."
+                            )
+
+                        else:
+
+                            # ------------------------------------------------
+                            # Sample selection
+                            # ------------------------------------------------
+                            a_samples = meta.index[
+                                meta[grouping_var] == group_a
+                            ].tolist()
+
+                            b_samples = meta.index[
+                                meta[grouping_var] == group_b
+                            ].tolist()
+
+                            a_samples = [
+                                s for s in a_samples
+                                if s in analysis_df.columns
+                            ]
+
+                            b_samples = [
+                                s for s in b_samples
+                                if s in analysis_df.columns
+                            ]
+
+                            st.write(
+                                f"**{group_a}:** n = {len(a_samples)}"
+                            )
+
+                            st.write(
+                                f"**{group_b}:** n = {len(b_samples)}"
+                            )
+
+                            if len(a_samples) < 2:
+
+                                st.warning(
+                                    f"Group A ({group_a}) has fewer than "
+                                    "2 samples."
+                                )
+
+                            elif len(b_samples) < 2:
+
+                                st.warning(
+                                    f"Group B ({group_b}) has fewer than "
+                                    "2 samples."
+                                )
+
+                            else:
+
+                                # --------------------------------------------
+                                # Map UI method to stats_analysis.py
+                                # --------------------------------------------
+                                if test_method == "Welch's t-test":
+                                    method_key = "ttest"
+                                else:
+                                    method_key = "wilcoxon"
+
+                                # --------------------------------------------
+                                # Run test
+                                # --------------------------------------------
+                                if st.button(
+                                    "Run Two-Group Test",
+                                    key="run_two_group_test"
+                                ):
+
+                                    try:
+
+                                        result = (
+                                            stats_analysis.two_group_test(
+                                                data_log2=analysis_df,
+                                                group_a_samples=a_samples,
+                                                group_b_samples=b_samples,
+                                                method=method_key
+                                            )
+                                        )
+
+                                        st.session_state.stats_result = result
+
+                                        st.session_state.stats_result_groups = (
+                                            group_a,
+                                            group_b
+                                        )
+
+                                        st.session_state.stats_result_group_col = (
+                                            grouping_var
+                                        )
+
+                                        st.session_state.stats_result_method = (
+                                            test_method
+                                        )
+
+                                        n_sig = int(
+                                            result["Significant"].sum()
+                                        )
+
+                                        st.success(
+                                            f"Analysis complete: "
+                                            f"{n_sig:,} significant features."
+                                        )
+
+                                    except Exception as e:
+
+                                        st.error(
+                                            f"Statistical analysis failed: {e}"
+                                        )
+
+                                # --------------------------------------------
+                                # Display result
+                                # --------------------------------------------
+                                if (
+                                    st.session_state.stats_result
+                                    is not None
+                                ):
+
+                                    result = st.session_state.stats_result
+
+                                    stored_groups = (
+                                        st.session_state
+                                        .get("stats_result_groups")
+                                    )
+
+                                    if stored_groups is not None:
+
+                                        result_a = stored_groups[0]
+                                        result_b = stored_groups[1]
+
+                                    else:
+
+                                        result_a = group_a
+                                        result_b = group_b
+
+                                    comparison_name = (
+                                        f"{result_a}_vs_{result_b}"
+                                    )
+
+                                    st.divider()
+
+                                    st.subheader(
+                                        f"Results: {result_a} vs {result_b}"
+                                    )
+
+                                    n_total = len(result)
+
+                                    n_sig = int(
+                                        result["Significant"].sum()
+                                    )
+
+                                    higher_b = int(
+                                        (
+                                            result["Direction"]
+                                            == "Higher in Group B"
+                                        ).sum()
+                                    )
+
+                                    lower_b = int(
+                                        (
+                                            result["Direction"]
+                                            == "Lower in Group B"
+                                        ).sum()
+                                    )
+
+                                    c1, c2, c3, c4 = st.columns(4)
+
+                                    c1.metric(
+                                        "Features",
+                                        f"{n_total:,}"
+                                    )
+
+                                    c2.metric(
+                                        "Significant",
+                                        f"{n_sig:,}"
+                                    )
+
+                                    c3.metric(
+                                        "Higher in Group B",
+                                        f"{higher_b:,}"
+                                    )
+
+                                    c4.metric(
+                                        "Lower in Group B",
+                                        f"{lower_b:,}"
+                                    )
+
+                                    st.dataframe(
+                                        result,
+                                        width="stretch",
+                                        height=450
+                                    )
+
+                                    st.download_button(
+                                        label=(
+                                            f"Download "
+                                            f"{comparison_name}_Statistics.csv"
+                                        ),
+                                        data=(
+                                            utils.to_download_bytes_csv(
+                                                result
+                                            )
+                                        ),
+                                        file_name=(
+                                            f"{comparison_name}_"
+                                            f"Statistics.csv"
+                                        ),
+                                        mime="text/csv",
+                                        key="download_two_group_stats"
+                                    )
+
+                                    st.caption(
+                                        "Significant = p < 0.05 AND "
+                                        "BH-FDR < 0.25. "
+                                        "Log2FC = Group B − Group A."
+                                    )
+
+                    # ========================================================
+                    # ANOVA
+                    # ========================================================
+                    else:
+
+                        st.subheader("One-Way ANOVA")
+
+                        if len(groups_available) < 3:
+
+                            st.warning(
+                                "At least 3 groups are required for ANOVA."
+                            )
+
+                        else:
+
+                            anova_groups = st.multiselect(
+                                "Groups to include in ANOVA:",
+                                groups_available,
+                                default=groups_available,
+                                key="anova_groups"
+                            )
+
+                            if len(anova_groups) < 3:
+
+                                st.warning(
+                                    "Select at least 3 groups."
+                                )
+
+                            else:
+
+                                posthoc_method = st.selectbox(
+                                    "Post-hoc method",
+                                    [
+                                        "tukey",
+                                        "dunnett",
+                                        "pairwise"
+                                    ],
+                                    key="anova_posthoc"
+                                )
+
+                                # --------------------------------------------
+                                # Group map
+                                # --------------------------------------------
+                                group_map = meta.loc[
+                                    sample_cols,
+                                    grouping_var
+                                ]
+
+                                group_map = group_map[
+                                    group_map.isin(anova_groups)
+                                ]
+
+                                group_map = group_map[
+                                    group_map.index.isin(
+                                        analysis_df.columns
+                                    )
+                                ]
+
+                                # --------------------------------------------
+                                # Run ANOVA
+                                # --------------------------------------------
+                                if st.button(
+                                    "Run ANOVA",
+                                    key="run_anova"
+                                ):
+
+                                    try:
+
+                                        anova_table, posthoc_results = (
+                                            stats_analysis.anova_test(
+                                                analysis_df[
+                                                    group_map.index
+                                                ],
+                                                group_map,
+                                                posthoc=posthoc_method
+                                            )
+                                        )
+
+                                        st.session_state.anova_result = (
+                                            anova_table
+                                        )
+
+                                        st.session_state.posthoc_result = (
+                                            posthoc_results
+                                        )
+
+                                        st.session_state.anova_groups_used = (
+                                            list(anova_groups)
+                                        )
+
+                                        n_sig = int(
+                                            (
+                                                anova_table["FDR"] < 0.25
+                                            ).sum()
+                                        )
+
+                                        st.success(
+                                            f"ANOVA complete: "
+                                            f"{n_sig:,} significant features "
+                                            f"(FDR < 0.25)."
+                                        )
+
+                                    except Exception as e:
+
+                                        st.error(
+                                            f"ANOVA failed: {e}"
+                                        )
+
+                                # --------------------------------------------
+                                # Show ANOVA results
+                                # --------------------------------------------
+                                if (
+                                    st.session_state.anova_result
+                                    is not None
+                                ):
+
+                                    anova_table = (
+                                        st.session_state.anova_result
+                                    )
+
+                                    st.divider()
+
+                                    st.subheader("ANOVA Results")
+
+                                    n_sig = int(
+                                        (
+                                            anova_table["FDR"] < 0.25
+                                        ).sum()
+                                    )
+
+                                    c1, c2 = st.columns(2)
+
+                                    c1.metric(
+                                        "Features tested",
+                                        f"{len(anova_table):,}"
+                                    )
+
+                                    c2.metric(
+                                        "Significant",
+                                        f"{n_sig:,}"
+                                    )
+
+                                    st.dataframe(
+                                        anova_table,
+                                        width="stretch",
+                                        height=400
+                                    )
+
+                                    anova_name = (
+                                        "ANOVA_"
+                                        + "_vs_".join(
+                                            map(
+                                                str,
+                                                st.session_state.get(
+                                                    "anova_groups_used",
+                                                    anova_groups
+                                                )
+                                            )
+                                        )
+                                    )
+
+                                    st.download_button(
+                                        label=(
+                                            f"Download {anova_name}.csv"
+                                        ),
+                                        data=(
+                                            utils.to_download_bytes_csv(
+                                                anova_table
+                                            )
+                                        ),
+                                        file_name=f"{anova_name}.csv",
+                                        mime="text/csv",
+                                        key="download_anova"
+                                    )
+
+                                    # ----------------------------------------
+                                    # Post-hoc
+                                    # ----------------------------------------
+                                    posthoc_results = (
+                                        st.session_state.get(
+                                            "posthoc_result"
+                                        )
+                                    )
+
+                                    if posthoc_results:
+
+                                        st.divider()
+
+                                        st.subheader(
+                                            "Post-hoc Results"
+                                        )
+
+                                        features = list(
+                                            posthoc_results.keys()
+                                        )
+
+                                        if len(features) > 0:
+
+                                            selected_feature = st.selectbox(
+                                                "Feature:",
+                                                features,
+                                                key="posthoc_feature"
+                                            )
+
+                                            selected_posthoc = (
+                                                posthoc_results[
+                                                    selected_feature
+                                                ]
+                                            )
+
+                                            st.dataframe(
+                                                selected_posthoc,
+                                                width="stretch",
+                                                height=350
+                                            )
+
+                                            st.download_button(
+                                                label=(
+                                                    "Download Selected "
+                                                    "Post-hoc Result"
+                                                ),
+                                                data=(
+                                                    utils
+                                                    .to_download_bytes_csv(
+                                                        selected_posthoc
+                                                    )
+                                                ),
+                                                file_name=(
+                                                    f"{anova_name}_Posthoc_"
+                                                    f"{selected_feature}.csv"
+                                                ),
+                                                mime="text/csv",
+                                                key="download_posthoc_one"
+                                            )
+
+                                            # --------------------------------
+                                            # All post-hoc results
+                                            # --------------------------------
+                                            all_posthoc = pd.concat(
+                                                [
+                                                    df.assign(
+                                                        Feature=feature
+                                                    )
+                                                    for feature, df
+                                                    in posthoc_results.items()
+                                                ],
+                                                ignore_index=True
+                                            )
+
+                                            st.download_button(
+                                                label=(
+                                                    "Download All "
+                                                    "Post-hoc Results"
+                                                ),
+                                                data=(
+                                                    utils
+                                                    .to_download_bytes_csv(
+                                                        all_posthoc
+                                                    )
+                                                ),
+                                                file_name=(
+                                                    f"{anova_name}_"
+                                                    "Posthoc_All_Features.csv"
+                                                ),
+                                                mime="text/csv",
+                                                key="download_posthoc_all"
+                                            )
 
 # ===========================================================================
 # TAB 7 — PCA
