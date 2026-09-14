@@ -3,6 +3,7 @@ MetaboAI Pro — Automated LC-MS Metabolomics Statistical Analysis and Reporting
 Streamlit application entry point.
 """
 
+```python
 import os
 import sys
 import numpy as np
@@ -24,6 +25,12 @@ from modules import (
     biomarker,
     heatmap_module,
     boxplot_module,
+)
+
+st.set_page_config(
+    page_title="MetaboAI Pro",
+    layout="wide",
+    page_icon="🧪"
 )
 
 st.set_page_config(
