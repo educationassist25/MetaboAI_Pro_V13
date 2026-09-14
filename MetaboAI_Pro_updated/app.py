@@ -2,8 +2,10 @@
 MetaboAI Pro — Automated LC-MS Metabolomics Statistical Analysis and Reporting Platform
 Streamlit application entry point.
 """
+
 import os
 import sys
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as _plt
@@ -28,7 +30,7 @@ from modules import (
 st.set_page_config(
     page_title="MetaboAI Pro",
     layout="wide",
-    page_icon="🧪"
+    page_icon="🧪",
 )
 
 # Compact heatmap annotation-color controls.
