@@ -23,7 +23,7 @@ for key, default in [
     ("row_annotations", None),
     ("heatmap_annotation_colors_applied", None), ("heatmap_colors_reset_pending", False),
     ("qc_cols", []), ("sample_cols", []), ("istd_normalized", None),
-    ("iqr_normalized", None), ("log2_data", None), ("log2_raw", None), ("log2_constant", None),
+    ("iqr_normalized", None), ("log2_data", None), ("log2_raw", None), ("log2_constant", 0.0),
     ("stats_result", None), ("stats_result_groups", None),
     ("anova_result", None), ("posthoc_result", None), ("anova_groups_used", None),
     ("stats_result_group_col", None),
@@ -553,7 +553,7 @@ def render_qc_ui(peak_df, qc_cols, sample_cols, key_prefix, state):
         "Shown below using **QC replicates only** — biological samples are excluded, since this "
         "module evaluates analytical reproducibility and instrument stability, not biology."
     )
-    qc_log, _ = normalization.log2_transform(peak_df[qc_cols])
+    qc_log = stats_analysis.strict_log2(peak_df[qc_cols])
     state["qc_log_data"] = qc_log
     fig_corr, corr_df = qc.sample_correlation_matrix(qc_log)
     st.pyplot(fig_corr)
@@ -889,19 +889,28 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
                     st.error(str(e))
         working = state.get("istd_normalized") if state.get("istd_normalized") is not None else base_df
 
-        st.markdown("**Step 2: Log2 Transformation**")
+        st.markdown("**Step 2: Strict Log2 Transformation**")
         st.caption(
-            "Formula: **Log2(Normalized Peak Area)** — log2 of the ISTD-normalized "
-            "(endogenous ÷ ISTD) ratio, with automatic zero replacement."
+            "Formula: **log2(x)** using the ISTD-normalized values. No pseudocount, "
+            "constant, or shifting is applied. Values ≤ 0 are treated as invalid for log2 "
+            "and become missing (NaN)."
         )
-        if st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_targeted_btn"):
-            log2_df, const = normalization.log2_transform(working)
+        if st.button("Apply Strict Log2 Transformation", key=f"{key_prefix}_log2_targeted_btn"):
+            log2_df = stats_analysis.strict_log2(working)
             state["log2_data"] = log2_df
-            state["log2_constant"] = const
+            state["log2_constant"] = 0.0
+            n_invalid = int((pd.to_numeric(working.stack(), errors="coerce") <= 0).sum())
             state["processing_notes"].append(
-                f"Log2 transformation applied to ISTD-normalized ratio (log2(x + {const:.4g}))."
+                "Strict log2 transformation applied to ISTD-normalized data: log2(x), "
+                "with no pseudocount, constant, or shifting."
             )
-            st.success(f"Log2 transformation complete (constant = {const:.4g}).")
+            if n_invalid:
+                st.warning(
+                    f"Strict log2 transformation found {n_invalid:,} non-positive value(s). "
+                    "These values were set to missing (NaN); no pseudocount or shift was used."
+                )
+            else:
+                st.success("Strict log2 transformation complete: log2(x), with no pseudocount or shift.")
             fig_dist = normalization.distribution_plots(working, log2_df)
             st.pyplot(fig_dist)
 
@@ -925,26 +934,33 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
             )
             st.success(f"Median-IQR normalization complete ({iqr_axis}-based).")
 
-        st.markdown("**Step 2: Log2 Transformation**")
+        st.markdown("**Step 2: Strict Log2 Transformation**")
         st.caption(
-            "Formula: **Log2(Normalized Value)**. Median-IQR normalized values are frequently "
-            "negative (any point below the median), and log2 is undefined for negative numbers — "
-            "so before logging, the data is shifted by a constant just large enough to make the "
-            "global minimum slightly positive. This preserves every value's relative position "
-            "while making the log2 step well-defined."
+            "Formula: **log2(x)** applied directly to the normalized values. No pseudocount, "
+            "constant, or shifting is applied. Because Median-IQR scaling can produce zero or "
+            "negative values, those values are treated as missing (NaN) rather than shifted."
         )
         if state.get("iqr_normalized") is None:
             st.info("Run Step 1 (Median-IQR Normalization) first.")
-        elif st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_untargeted_btn"):
-            log2_df, shift_used = normalization.shift_and_log2_transform(state["iqr_normalized"])
+        elif st.button("Apply Strict Log2 Transformation", key=f"{key_prefix}_log2_untargeted_btn"):
+            working_iqr = state["iqr_normalized"]
+            log2_df = stats_analysis.strict_log2(working_iqr)
             state["log2_data"] = log2_df
-            state["log2_constant"] = shift_used
+            state["log2_constant"] = 0.0
+            numeric_iqr = working_iqr.apply(pd.to_numeric, errors="coerce")
+            n_invalid = int((numeric_iqr <= 0).sum().sum())
             state["processing_notes"].append(
-                f"Log2 transformation applied to Median-IQR normalized data "
-                f"(shifted by {shift_used:.4g} to ensure positivity before logging)."
+                "Strict log2 transformation applied to Median-IQR normalized data: log2(x), "
+                "with no pseudocount, constant, or shifting."
             )
-            st.success(f"Log2 transformation complete (positivity shift = {shift_used:.4g}).")
-            fig_dist = normalization.distribution_plots(state["iqr_normalized"], log2_df)
+            if n_invalid:
+                st.warning(
+                    f"Strict log2 transformation found {n_invalid:,} non-positive normalized value(s). "
+                    "These values were set to missing (NaN); no pseudocount or shift was used."
+                )
+            else:
+                st.success("Strict log2 transformation complete: log2(x), with no pseudocount or shift.")
+            fig_dist = normalization.distribution_plots(working_iqr, log2_df)
             st.pyplot(fig_dist)
 
     prelog2_data = state.get("istd_normalized") if state.get("istd_normalized") is not None else state.get("iqr_normalized")
@@ -1051,12 +1067,13 @@ with TABS[5]:
             "🔗 Generate Combined Normalized Data", type="primary", disabled=(n_ready < n_total)
         )
         if generate_clicked:
-            combined, counts = dataset_manager.combine_normalized_datasets(
-                st.session_state.datasets, st.session_state.sample_cols, use_log2=True
-            )
             combined_prelog2, prelog2_counts = dataset_manager.combine_normalized_datasets(
                 st.session_state.datasets, st.session_state.sample_cols, use_log2=False
             )
+            # Apply the application's strict log2 rule AFTER the normalized datasets are
+            # combined. This prevents the dataset manager's legacy shifted/pseudocount
+            # transformation from entering downstream statistics.
+            combined = stats_analysis.strict_log2(combined_prelog2)
             st.session_state.log2_data = combined
             st.session_state.combined_normalized_prelog2 = combined_prelog2
             st.session_state.combined_done = True
@@ -1101,9 +1118,9 @@ with TABS[5]:
             st.markdown("**Normalized With Log2 Transformation**")
             st.dataframe(st.session_state.log2_data, width='stretch', height=400)
             st.download_button(
-                "Download Combined_Normalized_Log2.csv",
+                "Download Combined_Normalized_Strict_Log2.csv",
                 utils.to_download_bytes_csv(st.session_state.log2_data),
-                file_name="Combined_Normalized_Log2.csv", mime="text/csv",
+                file_name="Combined_Normalized_Strict_Log2.csv", mime="text/csv",
                 key="dl_combined_norm_log2"
             )
             st.caption(
@@ -1119,7 +1136,7 @@ with TABS[7]:
     st.header("Statistical Comparison")
     if st.session_state.log2_data is None:
         st.warning(
-            "Complete the Normalization tab (Log2 transform) first."
+            "Complete the Normalization tab (strict log2(x) transformation) first."
             if st.session_state.data_mode == "single" else
             "Complete Normalization for every dataset, then click **🔗 Generate Combined "
             "Normalized Data** in Tab 6 first — that combined table is what every "
@@ -1141,18 +1158,22 @@ with TABS[7]:
         groups_available = meta.loc[meta.index.intersection(sample_cols), grouping_var].unique().tolist()
 
         st.caption(
-            "All statistics below (mean abundance, fold change, p-value, FDR, 95% CI) are computed "
-            "from the log2-transformed, normalized data — raw peak areas are not used for inference."
+            "All statistics below are computed from the strictly log2-transformed normalized data "
+            "using **log2(x)** only — no pseudocount, constant, or shifting. Raw peak areas are not "
+            "used for statistical inference. For two-group comparisons: **Log2FC = Mean(Log2 Group A) "
+            "− Mean(Log2 Group B)** and **Linear_FC = 2^Log2FC**."
         )
 
         mode = st.radio("Comparison type", ["Two-group comparison", "ANOVA (≥3 groups)"], horizontal=True)
 
         if mode == "Two-group comparison":
             c1, c2, c3 = st.columns(3)
-            group_a = c1.selectbox("Group A", groups_available, index=0)
-            group_b = c2.selectbox("Group B", groups_available, index=min(1, len(groups_available) - 1))
-            method = c3.selectbox("Method", ["Student's t-test", "Wilcoxon rank-sum"])
-            method_key = "ttest" if method.startswith("Student") else "wilcoxon"
+            default_a = groups_available.index("Untreated") if "Untreated" in groups_available else 0
+            default_b = groups_available.index("IR Day 2") if "IR Day 2" in groups_available else min(1, len(groups_available) - 1)
+            group_a = c1.selectbox("Group A", groups_available, index=default_a)
+            group_b = c2.selectbox("Group B", groups_available, index=default_b)
+            method = c3.selectbox("Method", ["Welch's t-test", "Wilcoxon rank-sum"])
+            method_key = "ttest" if method.startswith("Welch") else "wilcoxon"
 
             if st.button("Run Two-Group Test"):
                 a_samples = meta.index[meta[grouping_var] == group_a].tolist()
@@ -1160,16 +1181,21 @@ with TABS[7]:
                 a_samples = [s for s in a_samples if s in log2_df.columns]
                 b_samples = [s for s in b_samples if s in log2_df.columns]
 
-                result = stats_analysis.complete_statistical_table(log2_df, a_samples, b_samples)
+                result = stats_analysis.two_group_test(
+                    log2_df, a_samples, b_samples, method=method_key
+                )
                 st.session_state.stats_result = result
                 st.session_state.stats_result_groups = (group_a, group_b)
                 st.session_state.stats_result_group_col = grouping_var
+                n_significant = int(
+                    ((result["p-value"] < 0.05) & (result["FDR"] < 0.25)).sum()
+                )
                 st.session_state.processing_notes.append(
                     f"Statistical comparison ({grouping_var}): {group_a} vs {group_b} using {method} "
-                    f"(BH-FDR correction); {result['Significant'].sum()} significant metabolites "
+                    f"(BH-FDR correction); {n_significant} significant metabolites "
                     f"(p<0.05 & FDR<0.25)."
                 )
-                st.success(f"Test complete: {result['Significant'].sum()} significant metabolites found.")
+                st.success(f"Test complete: {n_significant} significant metabolites found.")
 
             if st.session_state.stats_result is not None and st.session_state.stats_result_groups is not None:
                 result = st.session_state.stats_result
@@ -1258,7 +1284,7 @@ with TABS[6]:
     st.header("PCA Visualization (Biological Samples Only)")
     if st.session_state.log2_data is None:
         st.warning(
-            "Complete the Normalization tab (Log2 transform) first."
+            "Complete the Normalization tab (strict log2(x) transformation) first."
             if st.session_state.data_mode == "single" else
             "Complete Normalization for every dataset, then click **🔗 Generate Combined "
             "Normalized Data** in Tab 6 first — that combined table is what every "
@@ -1938,7 +1964,7 @@ with TABS[11]:
     st.header("Boxplot of Metabolites")
     if st.session_state.log2_data is None:
         st.warning(
-            "Complete the Normalization tab (Log2 transform) first."
+            "Complete the Normalization tab (strict log2(x) transformation) first."
             if st.session_state.data_mode == "single" else
             "Complete Normalization for every dataset, then click **🔗 Generate Combined "
             "Normalized Data** in the Normalization tab first — that combined table is what "
