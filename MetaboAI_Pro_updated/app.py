@@ -31,12 +31,6 @@ st.set_page_config(
     page_icon="🧪"
 )
 
-st.set_page_config(
-    page_title="MetaboAI Pro",
-    layout="wide",
-    page_icon="🧪"
-)
-
 # Compact heatmap annotation-color controls.
 st.markdown(
     """
