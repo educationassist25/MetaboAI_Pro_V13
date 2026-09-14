@@ -1160,8 +1160,7 @@ with TABS[7]:
         st.caption(
             "All statistics below are computed from the strictly log2-transformed normalized data "
             "using **log2(x)** only — no pseudocount, constant, or shifting. Raw peak areas are not "
-            "used for statistical inference. For two-group comparisons: **Log2FC = Mean(Log2 Group A) "
-            "− Mean(Log2 Group B)** and **Linear_FC = 2^Log2FC**."
+            "used for statistical inference. For two-group comparisons: **Log2FC = Mean(Log2 Group B) − Mean(Log2 Group A)** and **Linear_FC = 2^Log2FC**."
         )
 
         mode = st.radio("Comparison type", ["Two-group comparison", "ANOVA (≥3 groups)"], horizontal=True)
