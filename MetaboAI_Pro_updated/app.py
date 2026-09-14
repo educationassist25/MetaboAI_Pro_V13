@@ -45,7 +45,7 @@ for key, default in [
     ("row_annotations", None),
     ("heatmap_annotation_colors_applied", None), ("heatmap_colors_reset_pending", False),
     ("qc_cols", []), ("sample_cols", []), ("istd_normalized", None),
-    ("iqr_normalized", None), ("log2_data", None), ("log2_raw", None), ("log2_constant", None),
+    ("iqr_normalized", None), ("log2_data", None), ("log2_raw", None),
     ("stats_result", None), ("stats_result_groups", None),
     ("anova_result", None), ("posthoc_result", None), ("anova_groups_used", None),
     ("stats_result_group_col", None),
@@ -72,7 +72,7 @@ class _SingleDatasetState(dict):
         "raw_peak_df_qc": "raw_peak_df_qc", "cv_table": "cv_table", "qc_figs": "qc_figs",
         "qc_log_data": "qc_log_data",
         "istd_normalized": "istd_normalized", "iqr_normalized": "iqr_normalized",
-        "log2_data": "log2_data", "log2_constant": "log2_constant",
+        "log2_data": "log2_data",
     }
 
     def __getitem__(self, key):
@@ -575,7 +575,7 @@ def render_qc_ui(peak_df, qc_cols, sample_cols, key_prefix, state):
         "Shown below using **QC replicates only** — biological samples are excluded, since this "
         "module evaluates analytical reproducibility and instrument stability, not biology."
     )
-    qc_log, _ = normalization.log2_transform(peak_df[qc_cols])
+    qc_log = normalization.log2_transform(peak_df[qc_cols])
     state["qc_log_data"] = qc_log
     fig_corr, corr_df = qc.sample_correlation_matrix(qc_log)
     st.pyplot(fig_corr)
@@ -913,17 +913,23 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
 
         st.markdown("**Step 2: Log2 Transformation**")
         st.caption(
-            "Formula: **Log2(Normalized Peak Area)** — log2 of the ISTD-normalized "
-            "(endogenous ÷ ISTD) ratio, with automatic zero replacement."
+            "Formula: **Log2(x)** — strict log2 transformation of the "
+            "ISTD-normalized (endogenous ÷ ISTD) ratio. No pseudocount, "
+            "constant addition, zero replacement, or shifting is applied. "
+            "Values ≤ 0 are converted to NaN."
         )
         if st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_targeted_btn"):
-            log2_df, const = normalization.log2_transform(working)
+            log2_df = normalization.log2_transform(working)
             state["log2_data"] = log2_df
-            state["log2_constant"] = const
+                        n_nonpositive = int((working <= 0).sum().sum())
             state["processing_notes"].append(
-                f"Log2 transformation applied to ISTD-normalized ratio (log2(x + {const:.4g}))."
+                f"Strict Log2 transformation applied to ISTD-normalized ratio "
+                f"(log2(x)); {n_nonpositive} values ≤ 0 were converted to NaN."
             )
-            st.success(f"Log2 transformation complete (constant = {const:.4g}).")
+            st.success(
+                f"Strict Log2 transformation complete. "
+                f"{n_nonpositive} values ≤ 0 were converted to NaN."
+            )
             fig_dist = normalization.distribution_plots(working, log2_df)
             st.pyplot(fig_dist)
 
@@ -949,24 +955,28 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
 
         st.markdown("**Step 2: Log2 Transformation**")
         st.caption(
-            "Formula: **Log2(Normalized Value)**. Median-IQR normalized values are frequently "
-            "negative (any point below the median), and log2 is undefined for negative numbers — "
-            "so before logging, the data is shifted by a constant just large enough to make the "
-            "global minimum slightly positive. This preserves every value's relative position "
-            "while making the log2 step well-defined."
+            "Formula: **Log2(x)** — strict log2 transformation of the "
+            "Median-IQR normalized values. No pseudocount, constant addition, "
+            "zero replacement, or shifting is applied. Values ≤ 0 are "
+            "converted to NaN."
         )
         if state.get("iqr_normalized") is None:
             st.info("Run Step 1 (Median-IQR Normalization) first.")
         elif st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_untargeted_btn"):
-            log2_df, shift_used = normalization.shift_and_log2_transform(state["iqr_normalized"])
+            log2_df = normalization.log2_transform(state["iqr_normalized"])
             state["log2_data"] = log2_df
-            state["log2_constant"] = shift_used
+                        n_nonpositive = int((state["iqr_normalized"] <= 0).sum().sum())
             state["processing_notes"].append(
-                f"Log2 transformation applied to Median-IQR normalized data "
-                f"(shifted by {shift_used:.4g} to ensure positivity before logging)."
+                f"Strict Log2 transformation applied to Median-IQR normalized data "
+                f"(log2(x)); {n_nonpositive} values ≤ 0 were converted to NaN."
             )
-            st.success(f"Log2 transformation complete (positivity shift = {shift_used:.4g}).")
-            fig_dist = normalization.distribution_plots(state["iqr_normalized"], log2_df)
+            st.success(
+                f"Strict Log2 transformation complete. "
+                f"{n_nonpositive} values ≤ 0 were converted to NaN."
+            )
+            fig_dist = normalization.distribution_plots(
+                state["iqr_normalized"], log2_df
+            )
             st.pyplot(fig_dist)
 
     prelog2_data = state.get("istd_normalized") if state.get("istd_normalized") is not None else state.get("iqr_normalized")
