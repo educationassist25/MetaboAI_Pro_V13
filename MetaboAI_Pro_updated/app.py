@@ -14,47 +14,67 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(__file__))
 
 # ============================================================
-# IMPORT MODULES — DEBUG VERSION
+# PAGE CONFIGURATION
 # ============================================================
-
-from modules import utils
-print("✓ utils imported")
-
-from modules import qc
-print("✓ qc imported")
-
-from modules import normalization
-print("✓ normalization imported")
-
-from modules import imputation_module
-print("✓ imputation_module imported")
-
-from modules import dataset_manager
-print("✓ dataset_manager imported")
-
-from modules import stats_analysis
-print("✓ stats_analysis imported")
-
-from modules import pca_module
-print("✓ pca_module imported")
-
-from modules import volcano
-print("✓ volcano imported")
-
-from modules import biomarker
-print("✓ biomarker imported")
-
-from modules import heatmap_module
-print("✓ heatmap_module imported")
-
-from modules import boxplot_module
-print("✓ boxplot_module imported")
 
 st.set_page_config(
     page_title="MetaboAI Pro",
     layout="wide",
     page_icon="🧪",
 )
+
+st.title("🧪 MetaboAI Pro")
+st.write("Loading application modules...")
+
+# ============================================================
+# IMPORT MODULES — DEBUG VERSION
+# ============================================================
+
+st.write("Loading `utils`...")
+from modules import utils
+st.success("✓ utils imported")
+
+st.write("Loading `qc`...")
+from modules import qc
+st.success("✓ qc imported")
+
+st.write("Loading `normalization`...")
+from modules import normalization
+st.success("✓ normalization imported")
+
+st.write("Loading `imputation_module`...")
+from modules import imputation_module
+st.success("✓ imputation_module imported")
+
+st.write("Loading `dataset_manager`...")
+from modules import dataset_manager
+st.success("✓ dataset_manager imported")
+
+st.write("Loading `stats_analysis`...")
+from modules import stats_analysis
+st.success("✓ stats_analysis imported")
+
+st.write("Loading `pca_module`...")
+from modules import pca_module
+st.success("✓ pca_module imported")
+
+st.write("Loading `volcano`...")
+from modules import volcano
+st.success("✓ volcano imported")
+
+st.write("Loading `biomarker`...")
+from modules import biomarker
+st.success("✓ biomarker imported")
+
+st.write("Loading `heatmap_module`...")
+from modules import heatmap_module
+st.success("✓ heatmap_module imported")
+
+st.write("Loading `boxplot_module`...")
+from modules import boxplot_module
+st.success("✓ boxplot_module imported")
+
+st.success("🎉 All MetaboAI Pro modules imported successfully!")
 
 # Compact heatmap annotation-color controls.
 st.markdown(
