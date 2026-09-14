@@ -8,7 +8,7 @@ Statistical rules:
        - No constant addition
        - No shifting
     2. Fold change is calculated from log2-transformed data:
-           Log2FC = Mean(Log2 Group A) - Mean(Log2 Group B)
+           Log2FC = Mean(Log2 Group B) - Mean(Log2 Group A)
            Linear_FC = 2 ** Log2FC
     3. For the standard two-group comparison:
            Group A = Untreated
@@ -118,7 +118,7 @@ def two_group_test(
     Fold-change definitions:
 
         Log2FC =
-            Mean(Log2 Group A) - Mean(Log2 Group B)
+            Mean(Log2 Group B) - Mean(Log2 Group A)
 
         Linear_FC =
             2 ** Log2FC
@@ -259,18 +259,18 @@ def two_group_test(
     # Group A = Untreated
     # Group B = IR Day 2
     #
-    # Log2FC = A - B
+    # Log2FC = B - A
     # -------------------------------------------------------------
 
-    log2fc = mean_a - mean_b
+    log2fc = mean_b - mean_a
 
     # -------------------------------------------------------------
     # Linear Fold Change
     #
     # Linear_FC = 2 ** Log2FC
     #
-    # > 1  = higher in Untreated
-    # < 1  = lower in Untreated
+    # > 1  = higher in Group B
+    # < 1  = lower in Group B
     # = 1  = equal
     # -------------------------------------------------------------
 
