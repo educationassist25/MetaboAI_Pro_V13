@@ -607,7 +607,6 @@ def render_qc_ui(peak_df, qc_cols, sample_cols, key_prefix, state):
             f"{len(sample_cols)} biological samples."
         )
 
-
 # ===========================================================================
 # TAB 3 — QC VALIDATION
 # ===========================================================================
@@ -1141,8 +1140,7 @@ with TABS[5]:
             st.caption(
                 f"{st.session_state.log2_data.shape[0]} total features (dataset-prefixed) × "
                 f"{st.session_state.log2_data.shape[1]} samples. This is the table every "
-                "downstream tab now uses — head to **Tab 7 (PCA)** to continue."
-            )
+                "downstream tab now uses — head to **Tab 7 (PCA)** to continue.")
 
 # ===========================================================================
 # TAB 8 — STATISTICS
@@ -1790,8 +1788,7 @@ with TABS[7]:
                                                     "Posthoc_All_Features.csv"
                                                 ),
                                                 mime="text/csv",
-                                                key="download_posthoc_all"
-                                            )
+                                                key="download_posthoc_all")
 
 # ===========================================================================
 # TAB 7 — PCA
