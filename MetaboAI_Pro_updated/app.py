@@ -894,16 +894,26 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
             "Formula: **Log2(Normalized Peak Area)** — log2 of the ISTD-normalized "
             "(endogenous ÷ ISTD) ratio, with automatic zero replacement."
         )
-        if st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_targeted_btn"):
-            log2_df, const = normalization.log2_transform(working)
-            state["log2_data"] = log2_df
-            state["log2_constant"] = const
-            state["processing_notes"].append(
-                f"Log2 transformation applied to ISTD-normalized ratio (log2(x + {const:.4g}))."
-            )
-            st.success(f"Log2 transformation complete (constant = {const:.4g}).")
-            fig_dist = normalization.distribution_plots(working, log2_df)
-            st.pyplot(fig_dist)
+    if st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_targeted_btn"):
+    if (working <= 0).any().any():
+        st.error(
+            "Log2 transformation requires all values to be > 0. "
+            "Zero or negative values were detected."
+        )
+    else:
+        log2_df = np.log2(working)
+
+        state["log2_data"] = log2_df
+        state["log2_constant"] = None
+
+        state["processing_notes"].append(
+            "Log2 transformation applied directly to ISTD-normalized data (log2(x))."
+        )
+
+        st.success("Log2 transformation complete.")
+
+        fig_dist = normalization.distribution_plots(working, log2_df)
+        st.pyplot(fig_dist)
 
     if (not is_targeted) or override:
         st.markdown("**Step 1: Median-IQR Normalization (Robust Scaling)**")
@@ -936,16 +946,29 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
         if state.get("iqr_normalized") is None:
             st.info("Run Step 1 (Median-IQR Normalization) first.")
         elif st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_untargeted_btn"):
-            log2_df, shift_used = normalization.shift_and_log2_transform(state["iqr_normalized"])
-            state["log2_data"] = log2_df
-            state["log2_constant"] = shift_used
-            state["processing_notes"].append(
-                f"Log2 transformation applied to Median-IQR normalized data "
-                f"(shifted by {shift_used:.4g} to ensure positivity before logging)."
-            )
-            st.success(f"Log2 transformation complete (positivity shift = {shift_used:.4g}).")
-            fig_dist = normalization.distribution_plots(state["iqr_normalized"], log2_df)
-            st.pyplot(fig_dist)
+
+    if (state["iqr_normalized"] <= 0).any().any():
+        st.error(
+            "Log2 transformation requires all values to be > 0. "
+            "Median-IQR normalization produced zero or negative values."
+        )
+    else:
+        log2_df = np.log2(state["iqr_normalized"])
+
+        state["log2_data"] = log2_df
+        state["log2_constant"] = None
+
+        state["processing_notes"].append(
+            "Log2 transformation applied directly to Median-IQR normalized data (log2(x))."
+        )
+
+        st.success("Log2 transformation complete.")
+
+        fig_dist = normalization.distribution_plots(
+            state["iqr_normalized"],
+            log2_df
+        )
+        st.pyplot(fig_dist)
 
     prelog2_data = state.get("istd_normalized") if state.get("istd_normalized") is not None else state.get("iqr_normalized")
     if prelog2_data is not None or state.get("log2_data") is not None:
