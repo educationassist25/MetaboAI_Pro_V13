@@ -1,29 +1,44 @@
 """
 normalization.py
 ------------------------------------------------------------
-ISTD normalization, direct log2 transformation,
-and Median-IQR normalization.
+Metabolomics normalization utilities
 
-Recommended workflow:
+Workflow:
 
     Raw Peak Area
           ↓
     ISTD normalization
           ↓
-    log2(x)
+    Direct log2 transformation
           ↓
-    IQR normalization
+    Median-IQR normalization
           ↓
     Statistical analysis
 
-IMPORTANT:
-    log2 transformation is strictly:
+IMPORTANT
+---------
+The log2 transformation is strictly:
 
-        log2(x)
+    log2(x)
 
-    No pseudocount
-    No constant
-    No shifting
+No:
+    - pseudocount
+    - constant addition
+    - zero replacement
+    - shifting
+    - arbitrary offset
+
+Values <= 0 cannot be log2 transformed and are therefore
+converted to NaN.
+
+ISTD normalization:
+
+    Endogenous Peak Area / ISTD Peak Area
+
+Median-IQR normalization:
+
+    (X - Median) / IQR
+
 ------------------------------------------------------------
 """
 
@@ -31,6 +46,8 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
+
+# Prevent GUI/backend problems in Streamlit/server environments
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
@@ -45,12 +62,12 @@ def istd_normalize(
     istd_name: str
 ) -> pd.DataFrame:
     """
-    Normalize each endogenous metabolite by its internal standard (ISTD).
+    Normalize each endogenous metabolite by its internal standard.
 
-    Formula:
-
-        Normalized Peak Area =
-            Endogenous Peak Area / ISTD Peak Area
+    Formula
+    -------
+    Normalized Peak Area =
+        Endogenous Peak Area / ISTD Peak Area
 
     Parameters
     ----------
@@ -59,7 +76,7 @@ def istd_normalize(
         and samples as columns.
 
     istd_name : str
-        Name of the ISTD row.
+        Exact name of the ISTD row.
 
     Returns
     -------
@@ -69,7 +86,14 @@ def istd_normalize(
     Notes
     -----
     The ISTD itself is removed from the output.
+
+    ISTD values equal to zero are converted to NaN because
+    division by zero is not valid.
     """
+
+    # ---------------------------------------------------------------
+    # Validate input
+    # ---------------------------------------------------------------
 
     if not isinstance(peak_df, pd.DataFrame):
         raise TypeError(
@@ -82,33 +106,42 @@ def istd_normalize(
             f"was not found among the dataframe rows."
         )
 
-    # Get ISTD peak area
+    # ---------------------------------------------------------------
+    # Extract ISTD row
+    # ---------------------------------------------------------------
+
     istd_row = peak_df.loc[istd_name].copy()
 
-    # Convert to numeric
+    # Convert ISTD values to numeric
     istd_row = pd.to_numeric(
         istd_row,
         errors="coerce"
     )
 
-    # Zero ISTD values cannot be used for division
+    # Zero ISTD values cannot be used as denominators
     istd_row = istd_row.replace(
         0,
         np.nan
     )
 
-    # Remove ISTD from endogenous metabolite dataframe
+    # ---------------------------------------------------------------
+    # Remove ISTD from endogenous metabolites
+    # ---------------------------------------------------------------
+
     endogenous = peak_df.drop(
         index=istd_name
     ).copy()
 
-    # Make sure all values are numeric
+    # Convert endogenous values to numeric
     endogenous = endogenous.apply(
         pd.to_numeric,
         errors="coerce"
     )
 
+    # ---------------------------------------------------------------
     # ISTD normalization
+    # ---------------------------------------------------------------
+
     normalized = endogenous.div(
         istd_row,
         axis=1
@@ -127,25 +160,29 @@ def log2_transform(
     """
     Perform a direct log2 transformation.
 
-    Formula:
-
+    Formula
+    -------
         X_log2 = log2(X)
 
     IMPORTANT
     ---------
-    This function does NOT:
+    This function performs ONLY:
+
+        log2(x)
+
+    It does NOT:
 
         - add a constant
         - add a pseudocount
-        - replace zeros
-        - shift negative values
+        - replace zero with a small number
+        - shift the data
+        - subtract the minimum
+        - perform any additional normalization
 
     Values <= 0 are converted to NaN because:
 
-        log2(0)       = undefined
+        log2(0)        = undefined
         log2(negative) = undefined
-
-    Positive values are transformed directly.
 
     Parameters
     ----------
@@ -156,37 +193,78 @@ def log2_transform(
     -------
     pandas.DataFrame
         Direct log2-transformed dataframe.
+
+    IMPORTANT FOR APP.PY
+    --------------------
+    This function returns ONE DataFrame.
+
+    Correct:
+
+        qc_log = normalization.log2_transform(
+            peak_df[qc_cols]
+        )
+
+    Incorrect:
+
+        qc_log, _ = normalization.log2_transform(
+            peak_df[qc_cols]
+        )
     """
+
+    # ---------------------------------------------------------------
+    # Validate input
+    # ---------------------------------------------------------------
 
     if not isinstance(df, pd.DataFrame):
         raise TypeError(
             "df must be a pandas DataFrame."
         )
 
-    # Make a copy so the original dataframe is not changed
+    # ---------------------------------------------------------------
+    # Make a copy
+    # ---------------------------------------------------------------
+
     work = df.copy()
 
+    # ---------------------------------------------------------------
     # Convert all values to numeric
+    # ---------------------------------------------------------------
+
     work = work.apply(
         pd.to_numeric,
         errors="coerce"
     )
 
+    # ---------------------------------------------------------------
     # Values <= 0 cannot be log2 transformed
+    #
+    # They become NaN.
+    # ---------------------------------------------------------------
+
     work = work.mask(
         work <= 0
     )
 
+    # ---------------------------------------------------------------
     # DIRECT log2 transformation
+    # ---------------------------------------------------------------
+
     transformed = np.log2(
         work
     )
+
+    # ---------------------------------------------------------------
+    # Preserve original index and columns
+    # ---------------------------------------------------------------
+
+    transformed.index = df.index
+    transformed.columns = df.columns
 
     return transformed
 
 
 # =====================================================================
-# 3. IQR NORMALIZATION
+# 3. MEDIAN-IQR NORMALIZATION
 # =====================================================================
 
 def iqr_normalize(
@@ -197,8 +275,8 @@ def iqr_normalize(
     """
     Median-IQR normalization.
 
-    Formula:
-
+    Formula
+    -------
         X_normalized =
             (X - Median) / IQR
 
@@ -208,6 +286,8 @@ def iqr_normalize(
         Input dataframe.
 
     axis : str
+        Available options:
+
         'feature'
             Normalize each metabolite across samples.
 
@@ -215,46 +295,69 @@ def iqr_normalize(
             Normalize each sample across metabolites.
 
         'batch'
-            Normalize each metabolite separately within each batch.
+            Normalize each metabolite separately within
+            each batch.
 
-    batch_map : pandas.Series
+    batch_map : pandas.Series, optional
         Required when axis='batch'.
 
-        Index  = sample names
-        Values = batch labels
+        Index:
+            sample names
+
+        Values:
+            batch labels
 
     Returns
     -------
     pandas.DataFrame
-        IQR-normalized dataframe.
+        Median-IQR normalized dataframe.
+
+    Notes
+    -----
+    If IQR = 0, the normalized values are set to NaN for
+    that feature/sample because division by zero is undefined.
     """
+
+    # ---------------------------------------------------------------
+    # Validate dataframe
+    # ---------------------------------------------------------------
 
     if not isinstance(df, pd.DataFrame):
         raise TypeError(
             "df must be a pandas DataFrame."
         )
 
-    # ---------------------------------------------------------------
-    # Feature-wise IQR normalization
-    # ---------------------------------------------------------------
+    # Work on numeric data
+    work = df.apply(
+        pd.to_numeric,
+        errors="coerce"
+    )
+
+    # ===============================================================
+    # FEATURE-WISE NORMALIZATION
+    # ===============================================================
 
     if axis == "feature":
 
-        median = df.median(
+        # Median across samples for each metabolite
+        median = work.median(
             axis=1,
             skipna=True
         )
 
-        q1 = df.quantile(
+        # First quartile
+        q1 = work.quantile(
             0.25,
             axis=1
         )
 
-        q3 = df.quantile(
+        # Third quartile
+        q3 = work.quantile(
             0.75,
             axis=1
         )
 
+        # IQR
         iqr = q3 - q1
 
         # Avoid division by zero
@@ -263,8 +366,9 @@ def iqr_normalize(
             np.nan
         )
 
+        # Median-IQR normalization
         normalized = (
-            df
+            work
             .sub(
                 median,
                 axis=0
@@ -277,36 +381,42 @@ def iqr_normalize(
 
         return normalized
 
-    # ---------------------------------------------------------------
-    # Sample-wise IQR normalization
-    # ---------------------------------------------------------------
+    # ===============================================================
+    # SAMPLE-WISE NORMALIZATION
+    # ===============================================================
 
     elif axis == "sample":
 
-        median = df.median(
+        # Median across metabolites for each sample
+        median = work.median(
             axis=0,
             skipna=True
         )
 
-        q1 = df.quantile(
+        # First quartile
+        q1 = work.quantile(
             0.25,
             axis=0
         )
 
-        q3 = df.quantile(
+        # Third quartile
+        q3 = work.quantile(
             0.75,
             axis=0
         )
 
+        # IQR
         iqr = q3 - q1
 
+        # Avoid division by zero
         iqr = iqr.replace(
             0,
             np.nan
         )
 
+        # Median-IQR normalization
         normalized = (
-            df
+            work
             .sub(
                 median,
                 axis=1
@@ -319,9 +429,9 @@ def iqr_normalize(
 
         return normalized
 
-    # ---------------------------------------------------------------
-    # Batch-specific IQR normalization
-    # ---------------------------------------------------------------
+    # ===============================================================
+    # BATCH-SPECIFIC NORMALIZATION
+    # ===============================================================
 
     elif axis == "batch":
 
@@ -339,7 +449,19 @@ def iqr_normalize(
                 "batch_map must be a pandas Series."
             )
 
-        output = df.copy()
+        # Make sure batch_map contains sample names
+        missing_samples = [
+            sample
+            for sample in batch_map.index
+            if sample not in work.columns
+        ]
+
+        # Copy original dataframe
+        output = work.copy()
+
+        # -----------------------------------------------------------
+        # Process each batch independently
+        # -----------------------------------------------------------
 
         for batch in batch_map.dropna().unique():
 
@@ -348,42 +470,50 @@ def iqr_normalize(
                 batch_map == batch
             ].tolist()
 
-            # Keep only columns actually present
+            # Keep only columns present in dataframe
             cols = [
                 col
                 for col in cols
-                if col in df.columns
+                if col in work.columns
             ]
 
+            # Skip empty batches
             if not cols:
                 continue
 
-            sub = df[
+            # Data for current batch
+            sub = work[
                 cols
             ].copy()
 
+            # Median for each feature
             median = sub.median(
                 axis=1,
                 skipna=True
             )
 
+            # Q1
             q1 = sub.quantile(
                 0.25,
                 axis=1
             )
 
+            # Q3
             q3 = sub.quantile(
                 0.75,
                 axis=1
             )
 
+            # IQR
             iqr = q3 - q1
 
+            # Avoid division by zero
             iqr = iqr.replace(
                 0,
                 np.nan
             )
 
+            # Normalize batch
             output[
                 cols
             ] = (
@@ -399,6 +529,10 @@ def iqr_normalize(
             )
 
         return output
+
+    # ===============================================================
+    # INVALID AXIS
+    # ===============================================================
 
     else:
 
@@ -421,15 +555,15 @@ def normalize_metabolomics(
     """
     Complete metabolomics normalization workflow.
 
-    Workflow:
-
+    Workflow
+    --------
         Raw Peak Area
              ↓
         ISTD normalization
              ↓
         Direct log2(x)
              ↓
-        IQR normalization
+        Median-IQR normalization
 
     Parameters
     ----------
@@ -445,36 +579,57 @@ def normalize_metabolomics(
     iqr_axis : str
         IQR normalization axis.
 
+        Options:
+
+            'feature'
+            'sample'
+            'batch'
+
     Returns
     -------
     dict
-        Contains:
 
-        'istd_normalized'
-        'log2'
-        'iqr_normalized'
+        {
+            "istd_normalized": DataFrame,
+            "log2": DataFrame,
+            "iqr_normalized": DataFrame or None
+        }
+
+    Example
+    -------
+        result = normalize_metabolomics(
+            peak_df,
+            istd_name="ISTD"
+        )
+
+        istd = result["istd_normalized"]
+        log2_data = result["log2"]
+        iqr_data = result["iqr_normalized"]
     """
 
-    # ---------------------------------------------------------------
-    # Step 1: ISTD normalization
-    # ---------------------------------------------------------------
+    # ===============================================================
+    # STEP 1
+    # ISTD NORMALIZATION
+    # ===============================================================
 
     istd_df = istd_normalize(
         peak_df,
         istd_name
     )
 
-    # ---------------------------------------------------------------
-    # Step 2: DIRECT log2(x)
-    # ---------------------------------------------------------------
+    # ===============================================================
+    # STEP 2
+    # DIRECT LOG2 TRANSFORMATION
+    # ===============================================================
 
     log2_df = log2_transform(
         istd_df
     )
 
-    # ---------------------------------------------------------------
-    # Step 3: IQR normalization
-    # ---------------------------------------------------------------
+    # ===============================================================
+    # STEP 3
+    # MEDIAN-IQR NORMALIZATION
+    # ===============================================================
 
     if perform_iqr:
 
@@ -486,6 +641,10 @@ def normalize_metabolomics(
     else:
 
         iqr_df = None
+
+    # ===============================================================
+    # RETURN RESULTS
+    # ===============================================================
 
     return {
         "istd_normalized": istd_df,
@@ -506,25 +665,49 @@ def distribution_plots(
     """
     Generate before/after distribution plots.
 
-    BEFORE:
+    BEFORE
+    ------
         ISTD-normalized peak area
 
-    AFTER:
+    AFTER
+    -----
         Direct log2-transformed data
+
+    Parameters
+    ----------
+    before : pandas.DataFrame
+        ISTD-normalized data.
+
+    after : pandas.DataFrame
+        log2-transformed data.
+
+    sample_id : str, optional
+        Optional figure title.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        Generated figure.
     """
 
-    # Flatten before data
+    # ===============================================================
+    # BEFORE DATA
+    # ===============================================================
+
     b = before.to_numpy(
         dtype=float
     ).flatten()
 
-    # Keep positive finite values
+    # Keep finite positive values
     b = b[
         np.isfinite(b) &
         (b > 0)
     ]
 
-    # Flatten after data
+    # ===============================================================
+    # AFTER DATA
+    # ===============================================================
+
     a = after.to_numpy(
         dtype=float
     ).flatten()
@@ -534,7 +717,10 @@ def distribution_plots(
         np.isfinite(a)
     ]
 
-    # Create figure
+    # ===============================================================
+    # CREATE FIGURE
+    # ===============================================================
+
     fig, axes = plt.subplots(
         2,
         2,
@@ -542,7 +728,7 @@ def distribution_plots(
     )
 
     # ===============================================================
-    # BEFORE: Distribution
+    # BEFORE: DISTRIBUTION
     # ===============================================================
 
     if b.size > 0:
@@ -561,12 +747,16 @@ def distribution_plots(
         "Before: ISTD-normalized Peak Area"
     )
 
+    axes[0, 0].set_xlabel(
+        "ISTD-normalized Peak Area"
+    )
+
     axes[0, 0].set_ylabel(
         "Count"
     )
 
     # ===============================================================
-    # BEFORE: Boxplot
+    # BEFORE: BOXPLOT
     # ===============================================================
 
     if b.size > 0:
@@ -580,6 +770,7 @@ def distribution_plots(
 
         except TypeError:
 
+            # Compatibility with older matplotlib
             axes[0, 1].boxplot(
                 [b],
                 labels=["Before"]
@@ -594,7 +785,7 @@ def distribution_plots(
     )
 
     # ===============================================================
-    # AFTER: log2 distribution
+    # AFTER: LOG2 DISTRIBUTION
     # ===============================================================
 
     if a.size > 0:
@@ -618,7 +809,7 @@ def distribution_plots(
     )
 
     # ===============================================================
-    # AFTER: Boxplot
+    # AFTER: BOXPLOT
     # ===============================================================
 
     if a.size > 0:
@@ -632,6 +823,7 @@ def distribution_plots(
 
         except TypeError:
 
+            # Compatibility with older matplotlib
             axes[1, 1].boxplot(
                 [a],
                 labels=["log2(x)"]
@@ -642,7 +834,7 @@ def distribution_plots(
     )
 
     # ===============================================================
-    # Optional figure title
+    # OPTIONAL FIGURE TITLE
     # ===============================================================
 
     if sample_id is not None:
@@ -652,13 +844,17 @@ def distribution_plots(
             fontsize=14
         )
 
+    # ===============================================================
+    # LAYOUT
+    # ===============================================================
+
     fig.tight_layout()
 
     return fig
 
 
 # =====================================================================
-# 6. VALIDATION FUNCTION
+# 6. VALIDATE LOG2 TRANSFORMATION
 # =====================================================================
 
 def validate_log2(
@@ -668,8 +864,31 @@ def validate_log2(
     """
     Validate that transformed values are exactly log2(x).
 
-    This is useful for checking the normalization pipeline.
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Original input dataframe.
+
+    transformed_df : pandas.DataFrame
+        Output from log2_transform().
+
+    Returns
+    -------
+    pandas.DataFrame
+        Difference between calculated and expected values.
+
+    Notes
+    -----
+    The expected transformation is strictly:
+
+        log2(x)
+
+    No pseudocount or constant is used.
     """
+
+    # ===============================================================
+    # ORIGINAL DATA
+    # ===============================================================
 
     original = df.copy()
 
@@ -677,6 +896,10 @@ def validate_log2(
         pd.to_numeric,
         errors="coerce"
     )
+
+    # ===============================================================
+    # EXPECTED LOG2
+    # ===============================================================
 
     expected = original.mask(
         original <= 0
@@ -686,26 +909,57 @@ def validate_log2(
         expected
     )
 
+    # ===============================================================
+    # DIFFERENCE
+    # ===============================================================
+
     difference = (
         transformed_df - expected
     )
 
-    max_difference = np.nanmax(
-        np.abs(
-            difference.to_numpy()
-        )
+    # ===============================================================
+    # MAXIMUM ABSOLUTE DIFFERENCE
+    # ===============================================================
+
+    difference_values = difference.to_numpy(
+        dtype=float
     )
+
+    if np.isfinite(
+        difference_values
+    ).any():
+
+        max_difference = np.nanmax(
+            np.abs(
+                difference_values
+            )
+        )
+
+    else:
+
+        max_difference = np.nan
 
     print(
         "Maximum absolute difference:",
         max_difference
     )
 
-    if max_difference < 1e-10:
+    # ===============================================================
+    # VALIDATION RESULT
+    # ===============================================================
+
+    if np.isnan(max_difference):
+
+        print(
+            "⚠ Validation could not be completed: "
+            "no finite transformed values were found."
+        )
+
+    elif max_difference < 1e-10:
 
         print(
             "✓ Validation passed: "
-            "transformed values are log2(x)."
+            "transformed values are exactly log2(x)."
         )
 
     else:
@@ -716,3 +970,126 @@ def validate_log2(
         )
 
     return difference
+
+
+# =====================================================================
+# 7. SIMPLE PIPELINE TEST
+# =====================================================================
+
+if __name__ == "__main__":
+
+    print("=" * 70)
+    print("Testing normalization.py")
+    print("=" * 70)
+
+    # ---------------------------------------------------------------
+    # Example raw peak-area data
+    # ---------------------------------------------------------------
+
+    test_data = pd.DataFrame(
+        {
+            "Sample_1": [
+                10000,
+                2000,
+                5000,
+                100
+            ],
+            "Sample_2": [
+                12000,
+                2500,
+                5500,
+                120
+            ],
+            "Sample_3": [
+                9000,
+                1800,
+                4500,
+                90
+            ],
+        },
+        index=[
+            "Metabolite_A",
+            "Metabolite_B",
+            "Metabolite_C",
+            "ISTD"
+        ]
+    )
+
+    print("\nRaw Peak Area:")
+    print(test_data)
+
+    # ---------------------------------------------------------------
+    # ISTD normalization
+    # ---------------------------------------------------------------
+
+    istd = istd_normalize(
+        test_data,
+        "ISTD"
+    )
+
+    print("\nISTD-normalized:")
+    print(istd)
+
+    # ---------------------------------------------------------------
+    # Direct log2
+    # ---------------------------------------------------------------
+
+    log2_data = log2_transform(
+        istd
+    )
+
+    print("\nDirect log2:")
+    print(log2_data)
+
+    # ---------------------------------------------------------------
+    # Validate log2
+    # ---------------------------------------------------------------
+
+    print("\nLog2 validation:")
+
+    validate_log2(
+        istd,
+        log2_data
+    )
+
+    # ---------------------------------------------------------------
+    # IQR normalization
+    # ---------------------------------------------------------------
+
+    iqr = iqr_normalize(
+        log2_data,
+        axis="feature"
+    )
+
+    print("\nMedian-IQR normalized:")
+    print(iqr)
+
+    # ---------------------------------------------------------------
+    # Complete pipeline
+    # ---------------------------------------------------------------
+
+    result = normalize_metabolomics(
+        test_data,
+        istd_name="ISTD",
+        perform_iqr=True,
+        iqr_axis="feature"
+    )
+
+    print("\nComplete pipeline:")
+    print(
+        result["istd_normalized"]
+    )
+
+    print("\nLog2:")
+    print(
+        result["log2"]
+    )
+
+    print("\nIQR normalized:")
+    print(
+        result["iqr_normalized"]
+    )
+
+    print("\n" + "=" * 70)
+    print("Test completed successfully.")
+    print("=" * 70)
