@@ -921,7 +921,7 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
         if st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_targeted_btn"):
             log2_df = normalization.log2_transform(working)
             state["log2_data"] = log2_df
-                        n_nonpositive = int((working <= 0).sum().sum())
+            n_nonpositive = int((working <= 0).sum().sum())
             state["processing_notes"].append(
                 f"Strict Log2 transformation applied to ISTD-normalized ratio "
                 f"(log2(x)); {n_nonpositive} values ≤ 0 were converted to NaN."
@@ -965,7 +965,7 @@ def render_normalization_ui(base_df, data_type, key_prefix, state, meta):
         elif st.button("Apply Log2 Transformation", key=f"{key_prefix}_log2_untargeted_btn"):
             log2_df = normalization.log2_transform(state["iqr_normalized"])
             state["log2_data"] = log2_df
-                        n_nonpositive = int((state["iqr_normalized"] <= 0).sum().sum())
+            n_nonpositive = int((state["iqr_normalized"] <= 0).sum().sum())
             state["processing_notes"].append(
                 f"Strict Log2 transformation applied to Median-IQR normalized data "
                 f"(log2(x)); {n_nonpositive} values ≤ 0 were converted to NaN."
