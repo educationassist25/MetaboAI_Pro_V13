@@ -1,4 +1,3 @@
-```python
 """
 stats_analysis.py
 Two-group and multi-group (ANOVA) statistical comparison module.
@@ -679,4 +678,3 @@ def complete_statistical_table(
         group_b_samples=group_b_samples,
         method="ttest"
     )
-```
