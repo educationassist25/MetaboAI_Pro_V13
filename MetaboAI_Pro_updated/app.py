@@ -1,3 +1,4 @@
+'''python
 """
 MetaboAI Pro — Automated LC-MS Metabolomics Statistical Analysis and Reporting Platform
 Streamlit application entry point.
