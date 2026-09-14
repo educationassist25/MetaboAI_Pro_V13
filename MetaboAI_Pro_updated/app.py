@@ -5,98 +5,15 @@ Streamlit application entry point.
 
 import os
 import sys
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as _plt
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(__file__))
+from modules import utils, qc, normalization, imputation_module, dataset_manager, stats_analysis, pca_module, volcano, biomarker, heatmap_module, boxplot_module
 
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
-
-st.set_page_config(
-    page_title="MetaboAI Pro",
-    layout="wide",
-    page_icon="🧪",
-)
-
-st.title("🧪 MetaboAI Pro")
-st.write("Loading application modules...")
-
-# ============================================================
-# IMPORT MODULES — DEBUG VERSION
-# ============================================================
-
-
-from modules import utils
-
-
-
-from modules import qc
-
-
-
-from modules import normalization
-
-
-
-from modules import imputation_module
-
-
-
-from modules import dataset_manager
-
-
-
-from modules import stats_analysis
-
-
-
-from modules import pca_module
-
-
-
-from modules import volcano
-
-
-
-from modules import biomarker
-
-
-
-from modules import heatmap_module
-
-
-
-from modules import boxplot_module
-
-
-st.success("🎉 All MetaboAI Pro modules imported successfully!")
-
-# Compact heatmap annotation-color controls.
-st.markdown(
-    """
-    <style>
-    div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] {
-        padding-top: 0.35rem;
-        padding-bottom: 0.45rem;
-    }
-    div[data-testid="stColorPicker"] {
-        margin-top: -0.25rem;
-        margin-bottom: 0.15rem;
-    }
-    div[data-testid="stColorPicker"] button {
-        min-height: 30px;
-        height: 30px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
+st.set_page_config(page_title="MetaboAI Pro", layout="wide", page_icon="🧪")
 
 # ---------------------------------------------------------------------------
 # Session state initialization
